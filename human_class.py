@@ -1,8 +1,8 @@
 """
 created by Jan Schiffeler on 06.11.12019
 python 3.6.4
-numpy 1.16
-
+numpy 1.16.2
+matplotlib
 
 """
 
