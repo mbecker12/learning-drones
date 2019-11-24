@@ -1,6 +1,8 @@
 """
-created by Jan Schiffeler on 1201
-python 3.
+created by Jan Schiffeler on 24.11.12019
+changed by
+
+python 3.6.5
 numpy 1.
 
 
