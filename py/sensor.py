@@ -1,7 +1,7 @@
 import re
 import numpy as np
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +28,7 @@ class Sensor:
         return self.acceleration
 
     def measure_acceleration(self, acceleration):
+        assert(isinstance(acceleration, (float, np.float16, np.float32, np.float64)))
         self.acceleration = acceleration
 
     def naive_get_delta_v(self):
@@ -76,3 +77,72 @@ class DataGenerator:
             while True:
                 self.time += self.timestep
                 yield self.const + self.time * self.slope
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    # ###### CASE 1
+    # ###### Constant Acceleration
+    n = 50
+    dt = 0.1
+    time_grid = np.arange(0, n)
+
+    x = np.zeros(n)
+    v = np.zeros(n)
+    a = np.zeros(n)
+
+    v_old = 0
+    x_old = 0
+    for t in time_grid:
+        if t == n-1:
+            break
+        s = Sensor(dt)
+        s.measure_acceleration(1. + np.random.normal(0.0, 0.0))
+        a[t+1] = s.get_acceleration()
+        dv = s.naive_get_delta_v()
+        x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
+
+    # ax1.title("Constant acceleration")
+    ax1.plot(a[1:], label='a')
+    ax1.plot(v[1:], label='v')
+    ax1.plot(x[1:], label='x')
+    ax1.plot(dt * np.linspace(1, 50, 50), label='lin')
+    ax1.plot(dt * dt * np.linspace(1, 50, 50)**2, label='sq')
+    ax1.legend()
+
+
+    ###### CASE 2
+    ###### Periodic Acceleration
+    n = 100
+    dt = 0.1
+    omega = 0.25
+    time_grid = np.arange(0, n)
+
+    x = np.zeros(n)
+    v = np.zeros(n)
+    a = np.zeros(n)
+    v_old = 0
+    x_old = 0
+
+    for t in time_grid:
+        if t == n-1:
+            break
+        s = Sensor(dt)
+        s.measure_acceleration(np.sin(omega * time_grid[t] + np.random.normal(0.0, 0.0)))
+        a[t+1] = s.get_acceleration()
+        dv = s.naive_get_delta_v()
+        x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
+
+    # ax2.title("Periodic Acceleration")
+    ax2.plot(a[1:], label='a')
+    ax2.plot(v[1:], label='v')
+    ax2.plot(x[1:], label='x')
+    ratio = -dt * dt / omega / omega * np.sin(omega * time_grid) + 0.4 * time_grid / x
+    print('ratio: ', ratio)
+    ax2.plot(-dt / omega * np.cos(omega * time_grid) + 0.4, label='v_theo')
+    plt.plot(-dt / omega / omega * np.sin(omega * time_grid) + 0.4 * time_grid,
+        label='x_theo')
+    ax2.legend()
+    plt.tight_layout()
+    plt.show()
