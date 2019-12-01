@@ -30,8 +30,9 @@ class PID:
 
         if (previousError > 0 and error < 0) or (previousError < 0 and error > 0):
             self.integralError = 0
+        else:
+            self.accumulate_error(error, controlValue)
 
-        self.accumulate_error(error, controlValue)
         controlValDiff = controlValue - self.previousControlVal
         output = self.kc * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
         self.previousControlVal = controlValue
@@ -43,8 +44,9 @@ class PID:
 
         if controlValue > self.integralRange[1] or controlValue < self.integralRange[0]:
             self.integralError = 0
+        else:
+            self.accumulate_error(error, controlValue)
 
-        self.accumulate_error(error, controlValue)
         controlValDiff = controlValue - self.previousControlVal
         output = self.kc * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
         self.previousControlVal = controlValue
