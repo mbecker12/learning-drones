@@ -1,0 +1,112 @@
+"""
+Created by Jan Schiffeler at 01.12.19
+jan.schiffeler[at]gmail.com
+
+Changed by
+
+    .-.      .-.
+   | 0 |    | 1 |
+    'T' ____ 'T'
+         HH
+     _  ____  _
+   | 3 |    | 2 |
+    ' '      ' '
+
+
+Python 3.6.5
+Library version:
+numpy 1.17.4
+"""
+
+import numpy as np
+
+
+def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
+    """
+    Calculate the 3D roation matirx
+    :param roll: rot around x
+    :param pitch: rot around y
+    :param yaw: rot around z
+    :return: Rotation matrix of order Z,Y,X
+    """
+    R_x = np.array([[1,            0,                 0],
+                    [0, np.cos(roll), -1 * np.sin(roll)],
+                    [0, np.sin(roll),      np.cos(roll)]])
+
+    R_y = np.array([[     np.cos(pitch), 0, np.sin(pitch)],
+                    [                 0, 1,             0],
+                    [-1 * np.sin(pitch), 0, np.cos(pitch)]])
+
+    R_z = np.array([[np.cos(yaw), -1 * np.sin(yaw), 0],
+                    [np.sin(yaw),      np.cos(yaw), 0],
+                    [          0,                0, 1]])
+
+    return np.dot(R_z, np.dot(R_y, R_x))
+
+
+class QuadcopterPhysics:
+    """
+    Class to calculate the forces and moments of the quadcopter based on the physical parameters
+    Simplifications: - Direct control of motor thrust
+                     - Direct resulting moment of motor thrust
+                     - wind only from positive y-direction to negative y-direction
+    """
+    def __init__(self, mass_center: float, mass_motor: float,
+                 radius_motor_center: float,
+                 coef_force: float, coef_moment: float, coef_wind: float, gravity: float = 9.81,
+                 mass_payload: float = 0, x_payload:float = 0, y_payload:float = 0):
+        self.m_c = mass_center
+        self.m_m = mass_motor
+        self.r_m = radius_motor_center
+        self.c_f = coef_force
+        self.c_m = coef_moment
+        self.c_w = coef_wind
+        self.G = gravity * (4 * self.m_m + self.m_c)
+        self.moments_payload = np.zeros([3, 1])
+
+        if mass_payload != 0:
+            force_payload = gravity * mass_payload
+            self.G += force_payload
+            self.moments_payload[:, 0] = np.array([[x_payload * force_payload, y_payload * force_payload, 0]])
+
+    def calculate_forces_and_moments(self, thrust: np.ndarray,
+                                     roll: float, pitch: float, yaw: float,
+                                     wind_speed: float) -> (np.ndarray, np.ndarray):
+        """
+        name is pretty obvious don't you think?
+        :param thrust: [[T_0], [T_1], [T_2], [T_3]]
+        :param roll: rot around x
+        :param pitch: rot around y
+        :param yaw: rot around z
+        :param wind_speed:
+        :return: (forces vector [[X], [Y], [Z]], moments vector [[L],[M],[N]]
+        """
+        # calculate current rotations, environment influences, forces and moments of the rotors
+        Rot = rotation_matrix(roll, pitch, yaw)
+        T = thrust * self.c_f
+        W = wind_speed * self.c_w
+        R = thrust * self.c_m
+
+        # resulting forces
+        forces = np.array([[0, 0, np.sum(T)]], dtype=np.float32).T
+        G_rotated = np.dot(Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
+        W_rotated = np.dot(Rot, np.array([[0, -1 * W, 0]], dtype=np.float32).T)
+        forces += G_rotated + W_rotated
+
+        # resulting moments
+        L = self.r_m * (T[0] + T[3] - T[1] - T[2])
+        M = self.r_m * (T[0] + T[1] - T[2] - T[3])
+        N = np.sqrt(2) * self.r_m * (R[1] + R[3] - R[0] - R[2])
+        moments = np.array([[L, M, N]]).T
+        moments += self.moments_payload
+
+        return forces, moments
+
+
+if __name__ == "__main__":
+    qc = QuadcopterPhysics(mass_center=1, mass_motor=0.25, radius_motor_center=0.5,
+                           coef_force=1, coef_moment=1, coef_wind=1, gravity=10, mass_payload=1, x_payload=1)
+    t = np.array([[1], [1], [1], [1]])
+    f, m = qc.calculate_forces_and_moments(thrust=t, roll=0, pitch=0, yaw=0, wind_speed=0)
+    print(f)
+    print(m)
