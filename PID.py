@@ -2,8 +2,8 @@
 class PID:
     def __init__(self, kc, ti, td, timeStep, setValue, integralRange, integralFlag, clearErrorFlag, bias):
         self.kc = kc
-        self.ti = ti
-        self.td = td
+        self.ki = kc/ti
+        self.kd = kc * td
         self.dt = timeStep
         self.integralError = 0
         self.integralRange = integralRange
@@ -30,7 +30,7 @@ class PID:
             self.integralError = 0
 
         controlValDiff = controlValue - self.previousControlVal
-        output = self.kc * error + self.kc / self.ti * self.integralError * self.dt - self.kc * self.ti * controlValDiff / self.dt
+        output = self.bias + self.kc * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
         self.previousControlVal = controlValue
 
         return output
