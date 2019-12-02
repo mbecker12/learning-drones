@@ -1,9 +1,13 @@
 import re
 import numpy as np
 import logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+ONE_THIRD = 1.0 / 3.0
+TWO_THIRDS = 2.0 / 3.0
+ONE_SIXTH = 1.0 / 6.0
+FIVE_SIXTHS = 5.0 / 6.0
 
 class Sensor:
     """
@@ -21,26 +25,58 @@ class Sensor:
     memory of the last couple of acceleration values?
     """
     def __init__(self, delta_t):
-        self.acceleration = 0.0
+        self.current_acceleration = 0.0
+        self.last_acceleration = 0.0
         self.delta_t = delta_t
 
     def get_acceleration(self):
-        return self.acceleration
+        return self.current_acceleration
 
     def measure_acceleration(self, acceleration):
-        assert(isinstance(acceleration, (float, np.float16, np.float32, np.float64)))
-        self.acceleration = acceleration
+        assert(isinstance(acceleration,
+            (float, np.float16, np.float32, np.float64)))
+        if self.last_acceleration == 0:
+            logger.debug("Previous Acceleration Set to 0. Supposed to be done in Initialization only.")
+        self.last_acceleration = self.current_acceleration
+        self.current_acceleration = acceleration
 
     def naive_get_delta_v(self):
-        return self.acceleration * self.delta_t
+        delta_v = self.current_acceleration * self.delta_t
+        return delta_v
 
     def naive_get_delta_x(self, velocity):
-        return velocity * self.delta_t + \
-            self.acceleration * self.delta_t * self.delta_t
+        delta_x = velocity * self.delta_t + \
+            0.5 * self.current_acceleration * self.delta_t * self.delta_t
+        return delta_x
+
+    def verlet_get_delta_x(self, velocity):
+        delta_x = velocity * self.delta_t + \
+            0.5 * self.current_acceleration * self.delta_t * self.delta_t
+        return delta_x
+
+    def verlet_get_delta_v(self):
+        delta_v = 0.5 * (self.last_acceleration + self.current_acceleration) * self.delta_t
+        return delta_v
 
     def get_current_x_and_v(self, previous_position, previous_velocity):
         velocity = previous_velocity + self.naive_get_delta_v()
         position = previous_position + self.naive_get_delta_x(velocity)
+        return position, velocity
+
+    def velocity_verlet(self, previous_position, previous_velocity):
+        position = previous_position + self.verlet_get_delta_x(previous_velocity)
+        velocity = previous_velocity + self.verlet_get_delta_v()
+        return position, velocity
+
+    def beeman(self, previous_position, previous_velocity):
+        position = previous_position + \
+            previous_velocity * self.delta_t + \
+            (TWO_THIRDS * self.current_acceleration - ONE_SIXTH * self.last_acceleration) * \
+                self.delta_t * self.delta_t
+
+        velocity = previous_velocity + \
+            1.5 * self.current_acceleration * self.delta_t - \
+                0.5 * self.last_acceleration * self.delta_t
         return position, velocity
 
 
@@ -81,40 +117,87 @@ class DataGenerator:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    # ###### CASE 1
-    # ###### Constant Acceleration
-    n = 50
+    plt_logger = logging.getLogger('matplotlib')
+    plt_logger.setLevel(logging.INFO)
+
+    fig, (ax0, ax1, ax2) = plt.subplots(1, 3)
+
+    # ###### CASE 0
+    # ###### Free Fall
+    n = 101
     dt = 0.1
     time_grid = np.arange(0, n)
 
     x = np.zeros(n)
     v = np.zeros(n)
     a = np.zeros(n)
+    acc = 9.81
 
-    v_old = 0
-    x_old = 0
+    x[0] = 0
+    v[0] = 0
+    s = Sensor(dt)
     for t in time_grid:
         if t == n-1:
             break
-        s = Sensor(dt)
-        s.measure_acceleration(1. + np.random.normal(0.0, 0.0))
+        s.measure_acceleration(acc + np.random.normal(0.0, 0.0))
+        a[t+1] = s.get_acceleration()
+        x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
+        # x[t+1], v[t+1] = s.velocity_verlet(x[t], v[t])
+
+    ax0.set_title("Free Fall, Naive")
+    ax0.plot(a[1:], label='a')
+    ax0.plot(v[1:], label='v')
+    ax0.plot(x[1:], label='x')
+    ax0.plot(dt * time_grid * acc + v[0], label='lin')
+    ax0.plot(x[0] + v[0] * (dt * time_grid) + 0.5 * acc * (dt * time_grid)
+        * (dt * time_grid), label='sq')
+    ax0.legend()
+    s = 0.5 * acc * (dt * time_grid) * (dt * time_grid) + x[0] + v[0] * (dt * time_grid)
+    print("s: ", s[n-1])
+    print("x: ", x[n-2])
+
+
+    # ###### CASE 1
+    # ###### Constant Acceleration
+    n = 101
+    dt = 0.1
+    time_grid = np.arange(0, n)
+
+    x = np.zeros(n)
+    v = np.zeros(n)
+    a = np.zeros(n)
+    acc = -5
+
+    v_old = 0
+    x_old = 0
+    x[0] = 10
+    v[0] = 10
+    s = Sensor(dt)
+    for t in time_grid:
+        if t == n-1:
+            break
+        s.measure_acceleration(acc + np.random.normal(0.0, 0.0))
         a[t+1] = s.get_acceleration()
         dv = s.naive_get_delta_v()
-        x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
+        # x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
+        x[t+1], v[t+1] = s.velocity_verlet(x[t], v[t])
 
-    # ax1.title("Constant acceleration")
+    ax1.set_title("Constant acceleration, VV")
     ax1.plot(a[1:], label='a')
     ax1.plot(v[1:], label='v')
     ax1.plot(x[1:], label='x')
-    ax1.plot(dt * np.linspace(1, 50, 50), label='lin')
-    ax1.plot(dt * dt * np.linspace(1, 50, 50)**2, label='sq')
+    ax1.plot(dt * time_grid * acc + v[0], label='lin')
+    ax1.plot(x[0] + v[0] * (dt * time_grid) + 0.5 * acc * (dt * time_grid)
+        * (dt * time_grid), label='sq')
     ax1.legend()
+    s = 0.5 * acc * (dt * time_grid) * (dt * time_grid) + x[0] + v[0] * (dt * time_grid)
+    print("s: ", s[n-1])
+    print("x: ", x[n-2])
 
 
     ###### CASE 2
     ###### Periodic Acceleration
-    n = 100
+    n = 101
     dt = 0.1
     omega = 0.25
     time_grid = np.arange(0, n)
@@ -125,23 +208,26 @@ if __name__ == "__main__":
     v_old = 0
     x_old = 0
 
+    s = Sensor(dt)
     for t in time_grid:
         if t == n-1:
             break
-        s = Sensor(dt)
         s.measure_acceleration(np.sin(omega * time_grid[t] + np.random.normal(0.0, 0.0)))
         a[t+1] = s.get_acceleration()
         dv = s.naive_get_delta_v()
-        x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
+        # x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
+        x[t+1], v[t+1] = s.velocity_verlet(x[t], v[t])
 
-    # ax2.title("Periodic Acceleration")
+    ax2.set_title("Periodic Acceleration, VV")
     ax2.plot(a[1:], label='a')
     ax2.plot(v[1:], label='v')
     ax2.plot(x[1:], label='x')
-    ratio = -dt * dt / omega / omega * np.sin(omega * time_grid) + 0.4 * time_grid / x
-    print('ratio: ', ratio)
-    ax2.plot(-dt / omega * np.cos(omega * time_grid) + 0.4, label='v_theo')
-    plt.plot(-dt / omega / omega * np.sin(omega * time_grid) + 0.4 * time_grid,
+    
+    ax2.plot(
+        -dt / omega * np.cos(omega * time_grid) + dt / omega,
+        label='v_theo')
+    ax2.plot(dt * dt / omega * time_grid + 
+        -dt * dt / (omega * omega) * np.sin(omega * time_grid), 
         label='x_theo')
     ax2.legend()
     plt.tight_layout()
