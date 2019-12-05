@@ -4,10 +4,6 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-ONE_THIRD = 1.0 / 3.0
-TWO_THIRDS = 2.0 / 3.0
-ONE_SIXTH = 1.0 / 6.0
-FIVE_SIXTHS = 5.0 / 6.0
 
 class Sensor:
     """
@@ -66,17 +62,6 @@ class Sensor:
     def velocity_verlet(self, previous_position, previous_velocity):
         position = previous_position + self.verlet_get_delta_x(previous_velocity)
         velocity = previous_velocity + self.verlet_get_delta_v()
-        return position, velocity
-
-    def beeman(self, previous_position, previous_velocity):
-        position = previous_position + \
-            previous_velocity * self.delta_t + \
-            (TWO_THIRDS * self.current_acceleration - ONE_SIXTH * self.last_acceleration) * \
-                self.delta_t * self.delta_t
-
-        velocity = previous_velocity + \
-            1.5 * self.current_acceleration * self.delta_t - \
-                0.5 * self.last_acceleration * self.delta_t
         return position, velocity
 
 
