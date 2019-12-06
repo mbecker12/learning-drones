@@ -29,5 +29,5 @@ coef_moment = 0.5  # N
 # ENVIRONMENT
 coef_wind = 0.1  # kg/m
 mass_payload = 0  # kg
-x_payload = 0 # m
-y_payload = 0 # m
+x_payload = 0  # m
+y_payload = 0  # m
