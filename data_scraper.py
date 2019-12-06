@@ -29,29 +29,33 @@ import os
 
 
 class DataHandler:
-    def __init__(self, parentfolder: str = "", host: str = 'localhost', port: int = 65432, visualize: bool = True):
+    def __init__(self, parentfolder: str = "", host: str = 'localhost', port: int = 65432, visualize: bool = True,
+                 printouts: bool = True):
+        self.printouts = printouts
         # create folder to dump results
-        self.dir_name = parentfolder + datetime.now().strftime("%d_%m_%Y_%H_%M")
+        self.dir_name = parentfolder + "/" + datetime.now().strftime("%d_%m_%Y_%H_%M") + "/"
         try:
             os.mkdir(self.dir_name)
         except OSError:
-            print("[ERROR] Creation of the directory {} failed".format(self.dir_name))
+            if self.printouts: print("[ERROR] Creation of the directory {} failed".format(self.dir_name),
+                                     ". Parentfolders need to be manually created!")
         else:
-            print("[INFO] Created the directory {} ".format(self.dir_name))
+            if self.printouts: print("[INFO] Created the directory {} ".format(self.dir_name))
 
         # socket info
-        if visualize:
-            print("[INFO] Waiting for connection")
+        self.visualize = visualize
+        if self.visualize:
+            if self.printouts: print("[INFO] Waiting for connection")
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.connect((host, port))
-            print("[INFO] Connected")
+            if self.printouts: print("[INFO] Connected")
 
         # result arrays
-        self.time = np.zeros(1)
-        self.t_n = np.zeros([1, 4])
-        self.rotation = np.zeros([1, 3])
-        self.translation = np.zeros([1, 3])
-        self.wind = np.zeros(1)
+        self.time = np.zeros([1, 1], dtype=np.float32)
+        self.thrusters = np.zeros([1, 4], dtype=np.float32)
+        self.rotation = np.zeros([1, 3], dtype=np.float32)
+        self.translation = np.zeros([1, 3], dtype=np.float32)
+        self.wind = np.zeros([1, 1], dtype=np.float32)
 
     def send_message(self, time: float, t_n: np.ndarray, rotation: np.ndarray, translation: np.ndarray, wind: float):
         message = "time: {} ".format(time)
@@ -67,18 +71,30 @@ class DataHandler:
     def close_socket(self):
         self.socket.close()
 
-    def finish_run(self):
-        self.close_socket
+    def finish(self):
+        if self.visualize:
+            self.close_socket()
+            if self.printouts: print("[INFO] Socket closed")
         self.save_csv()
         self.save_npy()
 
     def save_npy(self):
-        pass
+        np.save(self.dir_name + "time", self.time)
+        np.save(self.dir_name + "thrust_values", self.thrusters)
+        np.save(self.dir_name + "rotation", self.rotation)
+        np.save(self.dir_name + "translation", self.translation)
+        np.save(self.dir_name + "wind", self.wind)
+        if self.printouts: print("[INFO] .npy saved")
 
     def save_csv(self):
-        pass
-
+        results = np.concatenate([self.time,
+                                  self.rotation * 180/np.pi, self.translation,
+                                  self.thrusters, self.wind], axis=1)
+        np.savetxt(self.dir_name + "Results.csv", results, delimiter=",",
+                   header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, Windspeed')
+        if self.printouts: print("[INFO] .csv saved")
 
 
 if __name__ == "__main__":
-    dh = DataHandler(parentfolder="results/")
+    dh = DataHandler(parentfolder="results", visualize=False)
+    dh.finish()
