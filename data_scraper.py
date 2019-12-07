@@ -162,4 +162,17 @@ if __name__ == "__main__":
     dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
                 translation=np.array([[2, 3, 1]]),
                 thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
+    input("waiting fooooor me baby")
+    dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
+                translation=np.array([[2, 3, 1]]),
+                thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
+    input("waiting fooooor me baby")
+    dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
+                translation=np.array([[2, 3, 1]]),
+                thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
+    input("waiting fooooor me baby")
+    dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
+                translation=np.array([[2, 3, 1]]),
+                thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
+    input("waiting fooooor me baby")
     dh.finish()
