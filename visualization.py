@@ -18,7 +18,7 @@ Library version:
 import socket
 import vtk
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 host = 'localhost'
 port = 65432
@@ -42,12 +42,14 @@ class DroneHandle:
         self.s.bind((host, port))
         self.s.listen()
         self.conn, addr = self.s.accept()
-        if printouts: print("INFO] Connected to", addr)
+        if printouts: print("[INFO] Connected to", addr)
 
         # plot setup
         if showing == "rotations":
             self._update_plots = self._update_rotations
+            print("I HAVE BEEN CALLED.")
             fig = plt.figure(constrained_layout=True, figsize=(7.8, 10.0))
+            print(" I MUST ANSWER.")
             grid = fig.add_gridspec(4, 4)
 
             self.roll_plot = self._setup_subplot(fig, grid, 0, 2, 4, "Roll", 110, 180, 'r')
@@ -65,6 +67,9 @@ class DroneHandle:
 
             self.thruster_plot = self._setup_barplot(fig, grid, "Thrusters", 10)
             self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
+            print("ALWAYS.")
+
+            plt.draw()
         elif showing == "translations":
             self._update_plots = self._update_translations
             ## DO ME BABY
@@ -75,7 +80,7 @@ class DroneHandle:
         try:
             data = self.conn.recv(1024)
             received = data.decode()
-            if printouts: print("[INFO] Message recieved: ", received)
+            if printouts: print("[INFO] Message received: ", received)
             if received == 'quit':
                 self.conn.close()
             else:
