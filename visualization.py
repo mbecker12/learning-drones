@@ -6,6 +6,7 @@ Changed by
 
 TODO:
 - initialization message with all the setpoints.
+- translation scatter plots
 
 Python 3.6.5
 Library version:
@@ -22,25 +23,26 @@ import matplotlib as plt
 host = 'localhost'
 port = 65432
 printouts = True
+last_states = 50
 
 
 class DroneHandle:
-    def __init__(self, actor: vtk.vtkActor, host: str, port: int, printouts: bool, showing: str):
+    def __init__(self, actor: vtk.vtkActor, host: str, port: int, printouts: bool, showing: str, n_last_states: int):
         self.actor = actor
 
         # data storage
-        self.time = np.zeros([1, 1], dtype=np.float32)
-        self.thrusters = np.zeros([1, 4], dtype=np.float32)
-        self.rotation = np.zeros([1, 3], dtype=np.float32)
-        self.translation = np.zeros([1, 3], dtype=np.float32)
-        self.wind = np.zeros([1, 1], dtype=np.float32)
+        self.plotting_assistant = np.arange(n_last_states)
+        self.rotation = np.zeros([n_last_states, 3], dtype=np.float32)
+        self.translation = np.zeros([n_last_states, 3], dtype=np.float32)
+        self.wind = np.zeros([n_last_states, 1], dtype=np.float32)
 
         # setup socket
+        if printouts: print("[INFO] Setting up server")
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((host, port))
         self.s.listen()
         self.conn, addr = self.s.accept()
-        if printouts: print('[INFO] Connected to', addr)
+        if printouts: print("INFO] Connected to", addr)
 
         # plot setup
         if showing == "rotations":
@@ -61,13 +63,13 @@ class DroneHandle:
             wind_plot = self._setup_subplot(fig, grid, 3, 0, 2, "Wind", None, 100, 'y')
             self.wind_handle = wind_plot.plot(0, 0, c='y')
 
-            thruster_plot = self._setup_barplot(fig, grid, "Thrusters", 10)
-            self.thruster_handle = thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
+            self.thruster_plot = self._setup_barplot(fig, grid, "Thrusters", 10)
+            self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
         elif showing == "translations":
             self._update_plots = self._update_translations
+            ## DO ME BABY
         else:
             raise TypeError("There is no flag named: ", showing, " ! Please input rotations or translations")
-
 
     def animate(self, obj, event):
         try:
@@ -78,14 +80,13 @@ class DroneHandle:
                 self.conn.close()
             else:
                 time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
-                self._store_new_data(time=time, rotation=np.array([[roll, pitch, yaw]]),
-                                     translation=np.array([[x, y, z]]),
-                                     thrusters=np.array([[t1, t2, t3, t4]]), wind=wind)
+                self._store_new_data(rotation=np.array([[roll, pitch, yaw]]),
+                                     translation=np.array([[x, y, z]]), wind=wind)
                 self._update_vtk(obj,
                                  d_roll=self.rotation[-1, 0] - self.rotation[-2, 0],
                                  d_pitch=self.rotation[-1, 1] - self.rotation[-2, 1],
                                  d_yaw=self.rotation[-1, 2] - self.rotation[-2, 2])
-                self._update_plots(time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind)
+                self._update_plots(time, t1, t2, t3, t4)
 
         except OSError:
             # This is ugly but this should not happen in the real tests
@@ -128,19 +129,23 @@ class DroneHandle:
         ax.axis([0, 20, -r - 10, r + 10])
         return ax
 
-    def _store_new_data(self, time: float, rotation: np.ndarray, translation: np.ndarray,
-                        thrusters: np.ndarray, wind: float):
-        self.time = np.concatenate([self.time, np.array([[time]])], axis=0)
+    def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float):
         rotation *= 180 / np.pi
-        self.rotation = np.concatenate([self.rotation, rotation], axis=0)
-        self.translation = np.concatenate([self.translation, translation], axis=0)
-        self.thrusters = np.concatenate([self.thrusters, thrusters], axis=0)
-        self.wind = np.concatenate([self.wind, np.array([[wind]])], axis=0)
+        self.rotation = np.roll(rotation, 1, axis=1)[-1, :]
+        self.translation = np.roll(translation, 1, axis=1)[-1, :]
+        self.wind = np.roll(wind, 1, axis=1)[-1, :]
 
-    def _update_rotations(self, time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind):
-        self.roll_handle.set_data()
+    def _update_rotations(self, time, t1, t2, t3, t4):
+        # update line plots
+        self.roll_handle.set_data(self.plotting_assistant, self.roll)
         self.roll_plot.set(title="Time: {}s".format(time))
-        self.pitch_handle.set_data()
+        self.pitch_handle.set_data(self.plotting_assistant, self.pitch)
+        self.yaw_handle.set_data(self.plotting_assistant, self.yaw)
+        self.wind_handle.set_data(self.plotting_assistant, self.wind)
+
+        # update bar plot
+        self.thruster_handle.remove()
+        self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [t1, t2, t3, t4])
 
     def _update_translations(self):
         pass
@@ -204,7 +209,8 @@ renWin.Render()
 
 iren.Initialize()
 
-dh = DroneHandle(actor=droneActor, host=host, port=port, printouts=printouts)
+dh = DroneHandle(actor=droneActor, host=host, port=port, printouts=printouts,
+                 showing="rotations", n_last_states=last_states)
 iren.AddObserver('TimerEvent', dh.animate)
 iren.CreateRepeatingTimer(0)
 
