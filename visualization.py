@@ -4,13 +4,15 @@ jan.schiffeler[at]gmail.com
 
 Changed by
 
+TODO:
+- initialization message with all the setpoints.
 
-
-Python 3.
+Python 3.6.5
 Library version:
 
 
 """
+
 
 import socket
 import vtk
@@ -46,20 +48,26 @@ class DroneHandle:
             fig = plt.figure(constrained_layout=True, figsize=(7.8, 10.0))
             grid = fig.add_gridspec(4, 4)
 
-            roll_plot = self._setup_subplot(fig, 0, 2, 4, "Roll", 110, 180, 'r')
-            self.roll_handle = roll_plot.plot(0, 0, c='r')
+            self.roll_plot = self._setup_subplot(fig, grid, 0, 2, 4, "Roll", 110, 180, 'r')
+            self.roll_plot.set(title="Time: 0s")
+            self.roll_handle = self.roll_plot.plot(0, 0, c='r')
 
-            pitch_plot = self._setup_subplot(fig, 1, 2, 4, "Pitch", 110, 180, 'g')
+            pitch_plot = self._setup_subplot(fig, grid, 1, 2, 4, "Pitch", 110, 180, 'g')
             self.pitch_handle = pitch_plot.plot(0, 0, c='g')
 
-            yaw_plot = self._setup_subplot(fig, 2, 2, 4, "Roll", 110, 180, 'b')
+            yaw_plot = self._setup_subplot(fig, grid, 2, 2, 4, "Roll", 110, 180, 'b')
             self.yaw_handle = yaw_plot.plot(0, 0, c='b')
 
-            wind_plot = self._setup_subplot(fig, 3, 0, 2, "Wind", None, 100, 'y')
+            wind_plot = self._setup_subplot(fig, grid, 3, 0, 2, "Wind", None, 100, 'y')
             self.wind_handle = wind_plot.plot(0, 0, c='y')
 
-            thruster_plot = fig.add_subplot(grid[3, :1])
-            thruster_plot.set(xlabel='Thrusters')
+            thruster_plot = self._setup_barplot(fig, grid, "Thrusters", 10)
+            self.thruster_handle = thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
+        elif showing == "translations":
+            self._update_plots = self._update_translations
+        else:
+            raise TypeError("There is no flag named: ", showing, " ! Please input rotations or translations")
+
 
     def animate(self, obj, event):
         try:
@@ -77,12 +85,31 @@ class DroneHandle:
                                  d_roll=self.rotation[-1, 0] - self.rotation[-2, 0],
                                  d_pitch=self.rotation[-1, 1] - self.rotation[-2, 1],
                                  d_yaw=self.rotation[-1, 2] - self.rotation[-2, 2])
-                self._update_plots()
+                self._update_plots(time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind)
 
         except OSError:
             # This is ugly but this should not happen in the real tests
             print("[ERROR] Socket got closed")
             quit()
+
+    def _setup_barplot(self, figure, grid, label, sp):
+        ax = figure.add_subplot(grid[3, :1])
+        ax.set(xlabel=label)
+        ticks = np.arange(0, 100 + 1, 50)
+
+        ax.set_xticks(np.arange(0.5, 4.5, 1))
+        ax.xaxis.set_ticks_position('none')
+        ax.set_yticks(ticks)
+        ax.set_yticks(ticks, minor=True)
+        ax.grid(which='minor', alpha=0.8)
+        ax.grid(which='major', alpha=0.0)
+
+        ax.set(xticklabels=['T1', 'T2', 'T3', 'T4'])
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.axhline(sp, c='r', alpha=0.7)
+        ax.axis([0, 4, 0, 101])
+        return ax
 
     def _setup_subplot(self, figure, grid, row, s_c, e_c, label, sp, r, c):
         ax = figure.add_subplot(grid[row, s_c:e_c])
@@ -91,6 +118,9 @@ class DroneHandle:
         x_ticks = np.arange(0, 1, 1)
         ax.set_xticks(x_ticks)
         ax.set_yticks(y_ticks)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
         ax.grid(which='major', alpha=1)
         # setpoint
         if not None:
@@ -107,8 +137,10 @@ class DroneHandle:
         self.thrusters = np.concatenate([self.thrusters, thrusters], axis=0)
         self.wind = np.concatenate([self.wind, np.array([[wind]])], axis=0)
 
-    def _update_rotations(self):
-        self.roll_handle
+    def _update_rotations(self, time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind):
+        self.roll_handle.set_data()
+        self.roll_plot.set(title="Time: {}s".format(time))
+        self.pitch_handle.set_data()
 
     def _update_translations(self):
         pass
@@ -149,20 +181,12 @@ droneMapper.SetInputConnection(drone.GetOutputPort())
 droneActor = vtk.vtkActor()
 droneActor.SetMapper(droneMapper)
 droneActor.GetProperty().SetColor(1.0, 0.0, 0.0)
-# X == Y
-# Y == X
-# Z == Z
-# droneActor.RotateZ(-180)
-# droneActor.RotateX(-90)
-# droneActor.RotateZ(-50)
 
 axes = vtk.vtkAxesActor()
 axes.SetTotalLength(30, 30, 30)
 axes.SetXAxisLabelText("")
 axes.SetYAxisLabelText("")
 axes.SetZAxisLabelText("")
-# axes->GetXAxisCaptionActor2D()->GetCaptionTextProperty()->SetColor(1,0,0);
-
 
 # camera
 camera = vtk.vtkCamera()
@@ -173,7 +197,7 @@ camera.SetFocalPoint(0, 0, 0)
 # assign actor to the renderer
 ren.AddActor(droneActor)
 ren.AddActor(axes)
-ren.SetActiveCamera(camera);
+ren.SetActiveCamera(camera)
 
 # enable user interface interactor
 renWin.Render()
