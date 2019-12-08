@@ -28,7 +28,7 @@ class PID:
 
         previousError = self.integralError
 
-        if (previousError > 0 and error < 0) or (previousError < 0 and error > 0):
+        if previousError * error < 0:
             self.integralError = 0
         else:
             self.accumulate_error(error, controlValue)
