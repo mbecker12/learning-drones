@@ -26,7 +26,6 @@ import numpy as np
 import socket
 from datetime import datetime
 import os
-import time as tm
 
 
 class DataHandler:
@@ -105,6 +104,8 @@ class DataHandler:
         self._save_csv()
         self._save_npy()
 
+        quit()
+
     def _open_server(self, host, port):
         if self.printouts: print("[INFO] Starting up server")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -121,15 +122,23 @@ class DataHandler:
         message = "time: {} ".format(time)
         message += "roll: {} pitch: {} yaw: {} ".format(*rotation[0])
         message += "x: {} y: {} z: {} ".format(*translation[0])
-        message += "t_1: {} t_2: {} t_3: {} t_4: {}, ".format(*thrusters[0])
+        message += "t_1: {} t_2: {} t_3: {} t_4: {} ".format(*thrusters[0])
         message += "v_w: {}".format(wind)
         for c in self.conn:
-            c.sendall(message.encode())
+            try:
+                c.sendall(message.encode())
+            except BrokenPipeError:
+                # if one connection fails save the progress and terminate
+                self.finish()
 
     def _close_socket(self):
-        for c in self.conn:
-            c.sendall("quit".encode())
-            c.close()
+        try:
+            for c in self.conn:
+                c.sendall("quit".encode())
+                c.close()
+        except BrokenPipeError:
+            print("[ERROR] One connection has been disconnected before closing!")
+        if self.printouts: print("[INFO] Closing sockets")
 
     def _save_npy(self):
         np.save(self.dir_name + "time", self.time)

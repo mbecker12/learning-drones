@@ -16,9 +16,9 @@ Library version:
 
 
 import socket
-import vtk
 import numpy as np
 import matplotlib.pyplot as plt
+import time as tm
 
 host = 'localhost'
 port = 65432
@@ -26,9 +26,10 @@ printouts = True
 last_states = 50
 
 
-class DroneHandle:
-    def __init__(self, actor: vtk.vtkActor, host: str, port: int, printouts: bool, showing: str, n_last_states: int):
-        self.actor = actor
+class Plotter:
+    def __init__(self, host: str, port: int, printouts: bool, showing: str, n_last_states: int):
+
+        self.printouts = printouts
 
         # data storage
         self.plotting_assistant = np.arange(n_last_states)
@@ -37,19 +38,13 @@ class DroneHandle:
         self.wind = np.zeros([n_last_states, 1], dtype=np.float32)
 
         # setup socket
-        if printouts: print("[INFO] Setting up server")
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.bind((host, port))
-        self.s.listen()
-        self.conn, addr = self.s.accept()
-        if printouts: print("[INFO] Connected to", addr)
+        self._open_socket(host, port)
 
         # plot setup
         if showing == "rotations":
             self._update_plots = self._update_rotations
-            print("I HAVE BEEN CALLED.")
+
             fig = plt.figure(constrained_layout=True, figsize=(7.8, 10.0))
-            print(" I MUST ANSWER.")
             grid = fig.add_gridspec(4, 4)
 
             self.roll_plot = self._setup_subplot(fig, grid, 0, 2, 4, "Roll", 110, 180, 'r')
@@ -67,36 +62,53 @@ class DroneHandle:
 
             self.thruster_plot = self._setup_barplot(fig, grid, "Thrusters", 10)
             self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
-            print("ALWAYS.")
 
             plt.draw()
         elif showing == "translations":
             self._update_plots = self._update_translations
-            ## DO ME BABY
+            # DO ME BABY
         else:
             raise TypeError("There is no flag named: ", showing, " ! Please input rotations or translations")
 
-    def animate(self, obj, event):
+    def loop(self):
         try:
-            data = self.conn.recv(1024)
+            data = self.socket.recv(1024)
             received = data.decode()
             if printouts: print("[INFO] Message received: ", received)
             if received == 'quit':
-                self.conn.close()
+                self.socket.close()
             else:
                 time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
                 self._store_new_data(rotation=np.array([[roll, pitch, yaw]]),
                                      translation=np.array([[x, y, z]]), wind=wind)
-                self._update_vtk(obj,
-                                 d_roll=self.rotation[-1, 0] - self.rotation[-2, 0],
-                                 d_pitch=self.rotation[-1, 1] - self.rotation[-2, 1],
-                                 d_yaw=self.rotation[-1, 2] - self.rotation[-2, 2])
                 self._update_plots(time, t1, t2, t3, t4)
+
+            return False
 
         except OSError:
             # This is ugly but this should not happen in the real tests
             print("[ERROR] Socket got closed")
             quit()
+
+            return True
+
+    def _open_socket(self, host, port):
+        if self.printouts: print("[INFO] Waiting for connection")
+        timer = 0
+        while timer < 60:
+            try:
+                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.socket.connect((host, port))
+                break
+            except ConnectionRefusedError:
+                timer += 1
+                if self.printouts: print("[INFO] No server found! Try: ", timer, "/60")
+                tm.sleep(0.5)
+        if timer == 60:
+            print("[ERROR] Connection could not be established. Will continue without visualization")
+            self.visualize = False
+        else:
+            if self.printouts: print("[INFO] Connected")
 
     def _setup_barplot(self, figure, grid, label, sp):
         ax = figure.add_subplot(grid[3, :1])
@@ -129,7 +141,7 @@ class DroneHandle:
         ax.spines['bottom'].set_visible(False)
         ax.grid(which='major', alpha=1)
         # setpoint
-        if not None:
+        if sp is not None:
             ax.axhline(y=sp, lw=1, c=c)
         ax.axis([0, 20, -r - 10, r + 10])
         return ax
@@ -157,66 +169,10 @@ class DroneHandle:
 
     def _decode_message(self, message: str):
         meaning = message.split(" ")
-        return [meaning[2 * i + 1] for i in range(int(len(meaning) / 2))]
-
-    def _update_vtk(self, obj, d_roll: float, d_pitch: float, d_yaw: float):
-        self.actor.RotateX(d_roll)
-        self.actor.RotateY(d_pitch)
-        self.actor.RotateZ(d_yaw)
-        obj.GetRenderWindow().Render()
+        return [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
 
 
-# create a rendering window and renderer
-ren = vtk.vtkRenderer()
-ren.SetBackground(0.0, 0.0, 0.0)
+dh = Plotter(host=host, port=port, printouts=printouts, showing="rotations", n_last_states=last_states)
 
-renWin = vtk.vtkRenderWindow()
-renWin.SetSize(1600, 1600)
-# renWin.SetWindowName("Please give me my drone!")
-renWin.AddRenderer(ren)
-
-# create a renderwindowinteractor
-iren = vtk.vtkRenderWindowInteractor()
-iren.SetRenderWindow(renWin)
-
-drone = vtk.vtkPLYReader()
-drone.SetFileName("Drone.ply")
-drone.Update()
-
-# mapper
-droneMapper = vtk.vtkPolyDataMapper()
-droneMapper.SetInputConnection(drone.GetOutputPort())
-
-# actor
-droneActor = vtk.vtkActor()
-droneActor.SetMapper(droneMapper)
-droneActor.GetProperty().SetColor(1.0, 0.0, 0.0)
-
-axes = vtk.vtkAxesActor()
-axes.SetTotalLength(30, 30, 30)
-axes.SetXAxisLabelText("")
-axes.SetYAxisLabelText("")
-axes.SetZAxisLabelText("")
-
-# camera
-camera = vtk.vtkCamera()
-camera.SetPosition(100, 100, 100)
-camera.SetRoll(-120)
-camera.SetFocalPoint(0, 0, 0)
-
-# assign actor to the renderer
-ren.AddActor(droneActor)
-ren.AddActor(axes)
-ren.SetActiveCamera(camera)
-
-# enable user interface interactor
-renWin.Render()
-
-iren.Initialize()
-
-dh = DroneHandle(actor=droneActor, host=host, port=port, printouts=printouts,
-                 showing="rotations", n_last_states=last_states)
-iren.AddObserver('TimerEvent', dh.animate)
-iren.CreateRepeatingTimer(0)
-
-iren.Start()
+while dh.loop():
+    pass
