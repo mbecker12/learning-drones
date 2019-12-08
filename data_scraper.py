@@ -54,7 +54,7 @@ class DataHandler:
         # socket info
         self.visualize = visualize
         if self.visualize:
-            self._open_socket(host, port)
+            self._open_server(host, port)
 
         # data arrays
         self.time = np.zeros([1, 1], dtype=np.float32)
@@ -73,11 +73,7 @@ class DataHandler:
         :param wind:
         :return:
         """
-        # check arguments
-        if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4):
-            raise ValueError('One or more input values are not of the right size')
-
-        # talk to visualization tool
+        # talk to visualization tools
         if self.visualize:
             self._send_message(time=time, rotation=rotation, translation=translation, thrusters=thrusters, wind=wind)
 
@@ -109,23 +105,16 @@ class DataHandler:
         self._save_csv()
         self._save_npy()
 
-    def _open_socket(self, host, port):
-        if self.printouts: print("[INFO] Waiting for connection")
-        timer = 0
-        while timer < 60:
-            try:
-                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.socket.connect((host, port))
-                break
-            except ConnectionRefusedError:
-                timer += 1
-                if self.printouts: print("[INFO] No server found! Try: ", timer, "/60")
-                tm.sleep(0.5)
-        if timer == 60:
-            print("[ERROR] Connection could not be established. Will continue without visualization")
-            self.visualize = False
-        else:
-            if self.printouts: print("[INFO] Connected")
+    def _open_server(self, host, port):
+        if self.printouts: print("[INFO] Starting up server")
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host, port))
+        self.conn = []
+        for i in range(2):
+            s.listen()
+            c, addr = s.accept()
+            self.conn.append(c)
+            if self.printouts: print("[INFO] Client connected to: ", addr)
 
     def _send_message(self, time: float, rotation: np.ndarray, translation: np.ndarray,
                       thrusters: np.ndarray, wind: float):
@@ -134,11 +123,13 @@ class DataHandler:
         message += "x: {} y: {} z: {} ".format(*translation[0])
         message += "t_1: {} t_2: {} t_3: {} t_4: {}, ".format(*thrusters[0])
         message += "v_w: {}".format(wind)
-        self.socket.sendall(message.encode())
+        for c in self.conn:
+            c.sendall(message.encode())
 
     def _close_socket(self):
-        self.socket.sendall("quit".encode())
-        self.socket.close()
+        for c in self.conn:
+            c.sendall("quit".encode())
+            c.close()
 
     def _save_npy(self):
         np.save(self.dir_name + "time", self.time)
