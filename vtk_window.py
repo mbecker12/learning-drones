@@ -40,16 +40,16 @@ class DroneHandle:
             if received == 'quit':
                 self.socket.close()
             else:
-                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind  = self._decode_message(message=received)
+                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
                 self._update_vtk(obj,
                                  d_roll=self.roll - roll,
                                  d_pitch=self.pitch - pitch,
-                                 d_yaw=self.yaw - yaw,)
+                                 d_yaw=self.yaw - yaw)
                 self._store_new_data(roll=roll, pitch=pitch, yaw=yaw)
 
         except OSError:
             # This is ugly but this should not happen in the real tests
-            print("[ERROR] Socket got closed")
+            print("[INFO] Socket got closed")
             quit()
 
     def _open_socket(self, host, port):
@@ -65,8 +65,7 @@ class DroneHandle:
                 if self.printouts: print("[INFO] No server found! Try: ", timer, "/60")
                 tm.sleep(0.5)
         if timer == 60:
-            print("[ERROR] Connection could not be established. Will continue without visualization")
-            self.visualize = False
+            quit()
         else:
             if self.printouts: print("[INFO] Connected")
 

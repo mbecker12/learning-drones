@@ -38,7 +38,7 @@ class Plotter:
         self.wind = np.zeros([n_last_states, 1], dtype=np.float32)
 
         # setup socket
-        self._open_socket(host, port)
+        # self._open_socket(host, port)
 
         # plot setup
         if showing == "rotations":
@@ -64,6 +64,7 @@ class Plotter:
             self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
 
             plt.draw()
+
         elif showing == "translations":
             self._update_plots = self._update_translations
             # DO ME BABY
@@ -79,9 +80,9 @@ class Plotter:
                 self.socket.close()
             else:
                 time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
+                self._update_plots(time, t1, t2, t3, t4)
                 self._store_new_data(rotation=np.array([[roll, pitch, yaw]]),
                                      translation=np.array([[x, y, z]]), wind=wind)
-                self._update_plots(time, t1, t2, t3, t4)
 
             return False
 
@@ -105,8 +106,7 @@ class Plotter:
                 if self.printouts: print("[INFO] No server found! Try: ", timer, "/60")
                 tm.sleep(0.5)
         if timer == 60:
-            print("[ERROR] Connection could not be established. Will continue without visualization")
-            self.visualize = False
+            quit()
         else:
             if self.printouts: print("[INFO] Connected")
 
@@ -148,9 +148,12 @@ class Plotter:
 
     def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float):
         rotation *= 180 / np.pi
-        self.rotation = np.roll(rotation, 1, axis=1)[-1, :]
-        self.translation = np.roll(translation, 1, axis=1)[-1, :]
-        self.wind = np.roll(wind, 1, axis=1)[-1, :]
+        self.rotation = np.roll(rotation, 1, axis=1)
+        self.rotation[-1, :] = rotation
+        self.translation = np.roll(translation, 1, axis=1)
+        self.translation[-1, :] = translation
+        self.wind = np.roll(wind, 1, axis=1)
+        self.wind[-1, :] = wind
 
     def _update_rotations(self, time, t1, t2, t3, t4):
         # update line plots
