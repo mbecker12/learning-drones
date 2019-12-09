@@ -23,7 +23,7 @@ import time as tm
 host = 'localhost'
 port = 65432
 printouts = True
-last_states = 50
+last_states = 20
 
 
 class Plotter:
@@ -44,23 +44,23 @@ class Plotter:
         if showing == "rotations":
             self._update_plots = self._update_rotations
 
-            fig = plt.figure(constrained_layout=True, figsize=(7.8, 10.0))
-            grid = fig.add_gridspec(4, 4)
+            self.figure = plt.figure(constrained_layout=True, figsize=(18.8, 10.0))
+            grid = self.figure.add_gridspec(4, 4)
 
-            self.roll_plot = self._setup_subplot(fig, grid, 0, 2, 4, "Roll", 110, 180, 'r')
+            self.roll_plot = self._setup_subplot(grid, 0, 2, 4, "Roll", 110, 180, 'r', n_last_states)
             self.roll_plot.set(title="Time: 0s")
-            self.roll_handle = self.roll_plot.plot(0, 0, c='r')
+            self.roll_handle, = self.roll_plot.plot(0, 0, c='r')
 
-            pitch_plot = self._setup_subplot(fig, grid, 1, 2, 4, "Pitch", 110, 180, 'g')
-            self.pitch_handle = pitch_plot.plot(0, 0, c='g')
+            pitch_plot = self._setup_subplot(grid, 1, 2, 4, "Pitch", 110, 180, 'g', n_last_states)
+            self.pitch_handle,  = pitch_plot.plot(0, 0, c='g')
 
-            yaw_plot = self._setup_subplot(fig, grid, 2, 2, 4, "Roll", 110, 180, 'b')
-            self.yaw_handle = yaw_plot.plot(0, 0, c='b')
+            yaw_plot = self._setup_subplot(grid, 2, 2, 4, "Roll", 110, 180, 'b', n_last_states)
+            self.yaw_handle, = yaw_plot.plot(0, 0, c='b')
 
-            wind_plot = self._setup_subplot(fig, grid, 3, 0, 2, "Wind", None, 100, 'y')
-            self.wind_handle = wind_plot.plot(0, 0, c='y')
+            wind_plot = self._setup_subplot(grid, 3, 2, 4, "Wind", None, 100, 'y', n_last_states)
+            self.wind_handle, = wind_plot.plot(0, 0, c='y')
 
-            self.thruster_plot = self._setup_barplot(fig, grid, "Thrusters", 10)
+            self.thruster_plot = self._setup_barplot(grid, "Thrusters", 10)
             self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
 
             plt.draw()
@@ -73,24 +73,26 @@ class Plotter:
 
     def loop(self):
         try:
-            data = self.socket.recv(1024)
-            received = data.decode()
-            if printouts: print("[INFO] Message received: ", received)
-            if received == 'quit':
-                self.socket.close()
-            else:
-                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
-                self._update_plots(time, t1, t2, t3, t4)
-                self._store_new_data(rotation=np.array([[roll, pitch, yaw]]),
-                                     translation=np.array([[x, y, z]]), wind=wind)
+            # data = self.socket.recv(1024)
+            # received = data.decode()
+            # if printouts: print("[INFO] Message received: ", received)
+            # if received == 'quit':
+            #     self.socket.close()
+            # else:
+            time = np.random.randint(100)
+            roll, pitch, yaw, x, y, z  =  [np.random.randint(-180, 180) for i in range(6)]
+            t1, t2, t3, t4 = [np.random.randint(0, 100) for i in range(4)]
+            wind = np.random.randint(-10, 10)
+        #  time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
+            self._update_plots(time, t1, t2, t3, t4)
+            self._store_new_data(rotation=np.array([[roll, pitch, yaw]]) * np.pi/180,
+                                 translation=np.array([[x, y, z]]), wind=wind)
 
             return False
 
         except OSError:
             # This is ugly but this should not happen in the real tests
             print("[ERROR] Socket got closed")
-            quit()
-
             return True
 
     def _open_socket(self, host, port):
@@ -110,8 +112,8 @@ class Plotter:
         else:
             if self.printouts: print("[INFO] Connected")
 
-    def _setup_barplot(self, figure, grid, label, sp):
-        ax = figure.add_subplot(grid[3, :1])
+    def _setup_barplot(self, grid, label, sp):
+        ax = self.figure.add_subplot(grid[3, :2])
         ax.set(xlabel=label)
         ticks = np.arange(0, 100 + 1, 50)
 
@@ -129,8 +131,8 @@ class Plotter:
         ax.axis([0, 4, 0, 101])
         return ax
 
-    def _setup_subplot(self, figure, grid, row, s_c, e_c, label, sp, r, c):
-        ax = figure.add_subplot(grid[row, s_c:e_c])
+    def _setup_subplot(self, grid, row, s_c, e_c, label, sp, r, c, x_size):
+        ax = self.figure.add_subplot(grid[row, s_c:e_c])
         ax.set(ylabel=label)
         y_ticks = np.arange(-r, r + 1, int(r / 2))
         x_ticks = np.arange(0, 1, 1)
@@ -143,29 +145,32 @@ class Plotter:
         # setpoint
         if sp is not None:
             ax.axhline(y=sp, lw=1, c=c)
-        ax.axis([0, 20, -r - 10, r + 10])
+        ax.axis([0, x_size + 10, -r - 10, r + 10])
         return ax
 
     def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float):
         rotation *= 180 / np.pi
-        self.rotation = np.roll(rotation, 1, axis=1)
+        self.rotation = np.roll(self.rotation, -1, axis=0)
         self.rotation[-1, :] = rotation
-        self.translation = np.roll(translation, 1, axis=1)
+        self.translation = np.roll(self.translation, -1, axis=0)
         self.translation[-1, :] = translation
-        self.wind = np.roll(wind, 1, axis=1)
+        self.wind = np.roll(self.wind, -1, axis=0)
         self.wind[-1, :] = wind
 
     def _update_rotations(self, time, t1, t2, t3, t4):
         # update line plots
-        self.roll_handle.set_data(self.plotting_assistant, self.roll)
+        self.roll_handle.set_data(self.plotting_assistant, self.rotation[:, 0])
         self.roll_plot.set(title="Time: {}s".format(time))
-        self.pitch_handle.set_data(self.plotting_assistant, self.pitch)
-        self.yaw_handle.set_data(self.plotting_assistant, self.yaw)
+        self.pitch_handle.set_data(self.plotting_assistant, self.rotation[:, 1])
+        self.yaw_handle.set_data(self.plotting_assistant, self.rotation[:, 2])
         self.wind_handle.set_data(self.plotting_assistant, self.wind)
 
         # update bar plot
         self.thruster_handle.remove()
-        self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [t1, t2, t3, t4])
+        self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [t1, t2, t3, t4], color='b')
+
+        self.figure.canvas.draw_idle()
+        plt.pause(0.0001)
 
     def _update_translations(self):
         pass
@@ -177,5 +182,9 @@ class Plotter:
 
 dh = Plotter(host=host, port=port, printouts=printouts, showing="rotations", n_last_states=last_states)
 
-while dh.loop():
-    pass
+
+for i in range(100):
+    dh.loop()
+# while dh.loop():
+#     print("Test")
+#     tm.sleep(0.1)
