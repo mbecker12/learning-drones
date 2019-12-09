@@ -38,7 +38,7 @@ class Plotter:
         self.wind = np.zeros([n_last_states, 1], dtype=np.float32)
 
         # setup socket
-        # self._open_socket(host, port)
+        self._open_socket(host, port)
 
         # plot setup
         if showing == "rotations":
@@ -73,22 +73,19 @@ class Plotter:
 
     def loop(self):
         try:
-            # data = self.socket.recv(1024)
-            # received = data.decode()
-            # if printouts: print("[INFO] Message received: ", received)
-            # if received == 'quit':
-            #     self.socket.close()
-            # else:
-            time = np.random.randint(100)
-            roll, pitch, yaw, x, y, z  =  [np.random.randint(-180, 180) for i in range(6)]
-            t1, t2, t3, t4 = [np.random.randint(0, 100) for i in range(4)]
-            wind = np.random.randint(-10, 10)
-        #  time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
-            self._update_plots(time, t1, t2, t3, t4)
-            self._store_new_data(rotation=np.array([[roll, pitch, yaw]]) * np.pi/180,
-                                 translation=np.array([[x, y, z]]), wind=wind)
+            data = self.socket.recv(1024)
+            received = data.decode()
+            if printouts: print("[INFO] Message received: ", received)
+            if received == 'quit':
+                self.socket.close()
+                return True
+            else:
+                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
+                self._update_plots(time, t1, t2, t3, t4)
+                self._store_new_data(rotation=np.array([[roll, pitch, yaw]]) * np.pi/180,
+                                     translation=np.array([[x, y, z]]), wind=wind)
 
-            return False
+                return False
 
         except OSError:
             # This is ugly but this should not happen in the real tests
@@ -149,7 +146,6 @@ class Plotter:
         return ax
 
     def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float):
-        rotation *= 180 / np.pi
         self.rotation = np.roll(self.rotation, -1, axis=0)
         self.rotation[-1, :] = rotation
         self.translation = np.roll(self.translation, -1, axis=0)
@@ -177,7 +173,13 @@ class Plotter:
 
     def _decode_message(self, message: str):
         meaning = message.split(" ")
-        return [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
+        try:
+            time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = \
+                [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
+            return time, roll * 180 / np.pi, pitch * 180 / np.pi, yaw * 180 / np.pi, x, y, z, t1, t2, t3, t4, wind
+        except ValueError:
+            if self.printouts: print("[ERROR] Couldn't decode message")
+            return [0 for i in range(12)]
 
 
 dh = Plotter(host=host, port=port, printouts=printouts, showing="rotations", n_last_states=last_states)

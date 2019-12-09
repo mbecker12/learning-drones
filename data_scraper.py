@@ -124,6 +124,7 @@ class DataHandler:
         message += "x: {} y: {} z: {} ".format(*translation[0])
         message += "t_1: {} t_2: {} t_3: {} t_4: {} ".format(*thrusters[0])
         message += "v_w: {}".format(wind)
+        if self.printouts: print("[INFO] Message send: ", message)
         for c in self.conn:
             try:
                 c.sendall(message.encode())
@@ -158,21 +159,18 @@ class DataHandler:
 
 
 if __name__ == "__main__":
+    import time as tm
     dh = DataHandler(parentfolder="results", visualize=True)
-    dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
-                translation=np.array([[2, 3, 1]]),
-                thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
-    input("waiting fooooor me baby")
-    dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
-                translation=np.array([[2, 3, 1]]),
-                thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
-    input("waiting fooooor me baby")
-    dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
-                translation=np.array([[2, 3, 1]]),
-                thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
-    input("waiting fooooor me baby")
-    dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
-                translation=np.array([[2, 3, 1]]),
-                thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
-    input("waiting fooooor me baby")
+    roll, pitch, yaw, x, y, z = [np.random.randint(-180, 180) for i in range(6)]
+    trans = np.array([[x, y, z]])
+    rot = np.array([[roll, pitch, yaw]]) * np.pi/180
+    for t in range(500):
+        rot += np.random.randint(-2, 2, [1, 3]) * np.pi/180
+        thrust = np.random.randint(0, 100, [1, 4])
+        w = np.random.randint(-10, 10)
+
+        dh.new_data(time=t, rotation=rot,
+                    translation=trans,
+                    thrusters=thrust, wind=w)
+        tm.sleep(0.5)
     dh.finish()

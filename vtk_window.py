@@ -21,6 +21,7 @@ host = 'localhost'
 port = 65432
 printouts = True
 
+
 class DroneHandle:
     def __init__(self, actor: vtk.vtkActor, host: str, port: int, printouts: bool):
         self.roll = 0
@@ -39,8 +40,10 @@ class DroneHandle:
             if printouts: print("[INFO] Message received: ", received)
             if received == 'quit':
                 self.socket.close()
+                print("[INFO] Socket got closed")
+                quit()
             else:
-                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
+                roll, pitch, yaw = self._decode_message(message=received)
                 self._update_vtk(obj,
                                  d_roll=self.roll - roll,
                                  d_pitch=self.pitch - pitch,
@@ -70,13 +73,19 @@ class DroneHandle:
             if self.printouts: print("[INFO] Connected")
 
     def _store_new_data(self, roll: float, pitch: float, yaw: float):
-        self.roll = roll * 180 / np.pi
-        self.pitch = pitch * 180 / np.pi
-        self.yaw = yaw * 180 / np.pi
+        self.roll = roll
+        self.pitch = pitch
+        self.yaw = yaw
 
     def _decode_message(self, message: str):
         meaning = message.split(" ")
-        return [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
+        try:
+            time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = \
+                [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
+            return roll * 180/np.pi, pitch  * 180/np.pi, yaw * 180/np.pi
+        except ValueError:
+            if self.printouts: print("[ERROR] Couldn't decode message")
+            return 0, 0, 0
 
     def _update_vtk(self, obj, d_roll: float, d_pitch: float, d_yaw: float):
         self.actor.RotateX(d_roll)
