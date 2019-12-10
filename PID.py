@@ -32,7 +32,7 @@ class PID:
         """
 
         error = self.setValue - controlValue
-        self.accumulate_error(error, controlValue)
+        self.accumulate_error(error)
 
         if self.previousControlVal != 0:
             controlValDiff = controlValue - self.previousControlVal
@@ -55,10 +55,10 @@ class PID:
 
         if errorSign < 0:
             self.integralError = 0
-        else:
-            self.accumulate_error(error, controlValue)
 
-        if self.previousControlVal != 0 :
+        self.accumulate_error(error)
+
+        if self.previousControlVal != 0:
             controlValDiff = controlValue - self.previousControlVal
         else:
             controlValDiff = 0
@@ -79,8 +79,8 @@ class PID:
 
         if np.abs(error) > self.integralRange:
             self.integralError = 0
-        else:
-            self.accumulate_error(error, controlValue)
+
+        self.accumulate_error(error)
 
         if self.previousControlVal != 0:
             controlValDiff = controlValue - self.previousControlVal
