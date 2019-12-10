@@ -26,7 +26,6 @@ import numpy as np
 import socket
 from datetime import datetime
 import os
-import time as tm
 
 
 class DataHandler:
@@ -54,7 +53,7 @@ class DataHandler:
         # socket info
         self.visualize = visualize
         if self.visualize:
-            self._open_socket(host, port)
+            self._open_server(host, port)
 
         # data arrays
         self.time = np.zeros([1, 1], dtype=np.float32)
@@ -73,11 +72,7 @@ class DataHandler:
         :param wind:
         :return:
         """
-        # check arguments
-        if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4):
-            raise ValueError('One or more input values are not of the right size')
-
-        # talk to visualization tool
+        # talk to visualization tools
         if self.visualize:
             self._send_message(time=time, rotation=rotation, translation=translation, thrusters=thrusters, wind=wind)
 
@@ -109,36 +104,48 @@ class DataHandler:
         self._save_csv()
         self._save_npy()
 
-    def _open_socket(self, host, port):
-        if self.printouts: print("[INFO] Waiting for connection")
-        timer = 0
-        while timer < 60:
-            try:
-                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.socket.connect((host, port))
-                break
-            except ConnectionRefusedError:
-                timer += 1
-                if self.printouts: print("[INFO] No server found! Try: ", timer, "/60")
-                tm.sleep(0.5)
-        if timer == 60:
-            print("[ERROR] Connection could not be established. Will continue without visualization")
-            self.visualize = False
-        else:
-            if self.printouts: print("[INFO] Connected")
+        quit()
+
+    def _open_server(self, host, port):
+        if self.printouts: print("[INFO] Starting up server")
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host, port))
+        self.conn = []
+        for i in range(2):
+            s.listen()
+            c, addr = s.accept()
+            self.conn.append(c)
+            if self.printouts: print("[INFO] Client connected to: ", addr)
 
     def _send_message(self, time: float, rotation: np.ndarray, translation: np.ndarray,
                       thrusters: np.ndarray, wind: float):
         message = "time: {} ".format(time)
         message += "roll: {} pitch: {} yaw: {} ".format(*rotation[0])
         message += "x: {} y: {} z: {} ".format(*translation[0])
-        message += "t_1: {} t_2: {} t_3: {} t_4: {}, ".format(*thrusters[0])
+        message += "t_1: {} t_2: {} t_3: {} t_4: {} ".format(*thrusters[0])
         message += "v_w: {}".format(wind)
-        self.socket.sendall(message.encode())
+        if self.printouts: print("[INFO] Message send: ", message)
+        for c in self.conn:
+            try:
+                c.sendall(message.encode())
+            except BrokenPipeError:
+                # if one connection fails save the progress and terminate
+                self.finish()
 
     def _close_socket(self):
-        self.socket.sendall("quit".encode())
-        self.socket.close()
+        for i in range(len(self.conn)):
+            try:
+                self.conn[i].sendall("quit".encode())
+                self.conn[i].close()
+            except BrokenPipeError:
+                print("[ERROR] One connection has been disconnected before closing!")
+                try:
+                    print((i - 1) * (-1))
+                    self.conn[(i - 1) * (-1)].sendall("quit".encode())
+                    self.conn[(i - 1) * (-1)].close()
+                except OSError:
+                    print("Shit just got real. Abort mission. Abort mission!!!! Kkkkrrrrchh, Schriiimpff.")
+        if self.printouts: print("[INFO] Closing sockets")
 
     def _save_npy(self):
         np.save(self.dir_name + "time", self.time)
@@ -158,8 +165,18 @@ class DataHandler:
 
 
 if __name__ == "__main__":
+    import time as tm
     dh = DataHandler(parentfolder="results", visualize=True)
-    dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
-                translation=np.array([[2, 3, 1]]),
-                thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
+    roll, pitch, yaw, x, y, z = [np.random.randint(-180, 180) for i in range(6)]
+    trans = np.array([[x, y, z]])
+    rot = np.array([[roll, pitch, yaw]]) * np.pi/180
+    for t in range(100):
+        rot += np.random.randint(-2, 2, [1, 3]) * np.pi/180
+        thrust = np.random.randint(0, 100, [1, 4])
+        w = np.random.randint(-10, 10)
+
+        dh.new_data(time=t, rotation=rot,
+                    translation=trans,
+                    thrusters=thrust, wind=w)
+        tm.sleep(0.015)
     dh.finish()
