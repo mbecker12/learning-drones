@@ -28,9 +28,9 @@ if __name__ == "__main__":
     dh = DataHandler(parentfolder="results", visualize=False)
     sensors = [Sensor(delta_t) for _ in range(6)]
     pids = [
-        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
-        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
-        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
+        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit", outputLimitRange=limitRange),
+        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit", outputLimitRange=limitRange),
+        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit", outputLimitRange=limitRange)
     ]
     quadcopter = QuadcopterPhysics(
         mass_center=mass_center,

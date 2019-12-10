@@ -2,14 +2,14 @@
 import numpy as np
 
 class PID:
-    def __init__(self, kp: float, ki: float, kd: float, timeStep: float, setValue, integralRange: float, calculateFlag):
+    def __init__(self, kp: float, ki: float, kd: float, timeStep: float, setValue, integralRange: float, calculateFlag,outputLimitRange):
         """ PID class, where ki = kp/ti and kd = kp*td  constants set  from the parameters.py file
-            setValue  is the value we want the PID to reach
+            :param setValue  is the value we want the PID to reach
 
-            calculateFlag is  string that corresponds to a differentiation of the calculate function with the help
+            :param calculateFlag is  string that corresponds to a differentiation of the calculate function with the help
             of a dictionary defined in the constructor as calculateDictionary
-
-            calculate is the method we use to find the output of the PID
+            :param outputLimitRange is an array with the limits of the output, will be set constant values in the parameters file
+            :function calculate is the method we use to find the output of the PID
         """
         self.kp = kp
         self.ki = ki
@@ -20,6 +20,7 @@ class PID:
         self.setValue = setValue
         self.previousError = 0
         self.previousControlVal = 0
+        self.outputLimitRange = outputLimitRange
         self.calculateDictionary = {"noFlush": self.calculate_no_clear, "signChange": self.calculate_error_sign,
                                     "rangeExit": self.calculate_range_exit}
         self.calculate = self.calculateDictionary[calculateFlag]
@@ -30,7 +31,6 @@ class PID:
         The derivative part at the first time of calculate call is 0.
         :param controlValue: PV
         """
-
         error = self.setValue - controlValue
         self.accumulate_error(error)
 
@@ -41,8 +41,7 @@ class PID:
 
         output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
         self.previousControlVal = controlValue
-
-        return output
+        return self.check_output(output)
 
     def calculate_error_sign(self, controlValue):
         """
@@ -69,7 +68,7 @@ class PID:
         if error != 0:
             self.previousError = error
 
-        return output
+        return self.check_output(output)
 
     def calculate_range_exit(self, controlValue):
         """
@@ -89,10 +88,18 @@ class PID:
 
         output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
         self.previousControlVal = controlValue
-
-        return output
+        return self.check_output(output)
 
     def accumulate_error(self, error):
 
         if np.abs(error) < self.integralRange:
             self.integralError += error
+
+    def check_output(self, output):
+
+        if output < self.outputLimitRange[0]:
+            output = 0
+        elif output > self.outputLimitRange[1]:
+            output = 100
+
+        return output
