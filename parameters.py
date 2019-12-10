@@ -38,4 +38,4 @@ ti = 1
 td = 1
 ki = kp/ti
 kd = kp * td
-limitRange = [0, 100]
+limitRange = [0, 1]

@@ -100,6 +100,6 @@ class PID:
         if output < self.outputLimitRange[0]:
             output = 0
         elif output > self.outputLimitRange[1]:
-            output = 100
+            output = 1
 
         return output
