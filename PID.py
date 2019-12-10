@@ -2,7 +2,7 @@
 import numpy as np
 
 class PID:
-    def __init__(self, kp: float, ki: float, kd: float, timeStep: float, setValue, integralRange: float, calculateFlag,outputLimitRange):
+    def __init__(self, kp: float, ki: float, kd: float, timeStep: float, setValue, calculateFlag, integralRange: float = 2, outputLimitRange=[0, 1]):
         """ PID class, where ki = kp/ti and kd = kp*td  constants set  from the parameters.py file
             :param setValue  is the value we want the PID to reach
 
@@ -98,8 +98,8 @@ class PID:
     def check_output(self, output):
 
         if output < self.outputLimitRange[0]:
-            output = 0
+            output = 0.
         elif output > self.outputLimitRange[1]:
-            output = 1
+            output = 1.
 
         return output

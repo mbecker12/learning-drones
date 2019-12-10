@@ -7,7 +7,7 @@ from sensor import Sensor
 
 if __name__ == "__main__":
     # initialize drone, choose starting position
-    initial_thrust = np.array([[1, 1, 1, 1]])
+    initial_thrust = np.array([[1, 1, 1, 1]], dtype=float)
     initial_roll = 1.0
     initial_pitch = 2.0
     initial_yaw = 3.0
@@ -82,10 +82,8 @@ if __name__ == "__main__":
         pitch, vpitch = sensors[4].velocity_verlet(previous_pitch, previous_vpitch)
         yaw, vyaw = sensors[5].velocity_verlet(previous_yaw, previous_vyaw)
 
-        outputs = np.zeros(len(pids))
-        for i, pid in enumerate(pids):
-            outputs[i] = pid.calculate(1)
-            print(outputs[i])
+        inputs = np.ones(len(pids))
+        outputs = [pid.calculate(inputs[i]) for i, pid in enumerate(pids)]
 
         delta_z = 0.0
         thrust = quadcopter.controll_thrust(outputs, roll, pitch, yaw, delta_z)

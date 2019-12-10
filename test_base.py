@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 import numpy as np
 from physical_model import rotation_matrix, QuadcopterPhysics
 from PID import PID
@@ -5,10 +8,23 @@ from parameters import *
 from data_scraper import DataHandler
 from sensor import Sensor
 from time import sleep
+import sys
 
-thrust_type = 'yaw'
+thrust_type = 'pitch'
 
 if __name__ == "__main__":
+    
+    if len(sys.argv) >= 2:
+        visualize = bool(int(sys.argv[1]))
+    else:
+        visualize = True
+    
+    if not visualize:
+        if len(sys.argv) >= 2:
+            n_servers = int(sys.argv[2])
+        else:
+            n_servers = 2
+
     # initialize drone, choose starting position
     initial_thrust = np.array([[1, 1, 1, 1]])
     initial_roll = 0.0
@@ -53,12 +69,12 @@ if __name__ == "__main__":
     timesteps = 1000
 
     # Initialize Drone Hardware
-    dh = DataHandler(parentfolder="results", visualize=True, n_servers=1)
+    dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=1)
     sensors = [Sensor(delta_t) for _ in range(6)]
     pids = [
-        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=np.zeros(100), calculateFlag="rangeExit"),
-        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=np.zeros(100), calculateFlag="rangeExit"),
-        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=np.zeros(100), calculateFlag="rangeExit")
+        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
     ]
     
     quadcopter = QuadcopterPhysics(
@@ -121,16 +137,24 @@ if __name__ == "__main__":
 
         delta_z = 0.0
         # replace thruster values by hard coded values
-        # thrust = quadcopter.controll_thrust(outputs, roll, pitch, yaw, delta_z)
 
-        thrust = thrust_dict[thrust_type]
-        # thrust *= np.sin(time * 2 * np.pi)
-        print(thrust)
-        if j == 20:
-            j = 0
-        if 8 < j < 20:
-            thrust = 1 - thrust
-        j += 1
+        outputs = np.array([
+            np.sin(0.5 * time / (2 * np.pi) + 0 * np.pi * 0.333)**2,
+            np.sin(0.5 * time / (2 * np.pi) + 1 * np.pi * 0.333)**2,
+            np.sin(0.5 * time / (2 * np.pi) + 2 * np.pi * 0.333)**2,
+        ])
+        thrust = quadcopter.controll_thrust(outputs, roll, pitch, yaw, delta_z)
+
+        # sin_factor = np.sin(0.5 * time / (2 * np.pi)) * np.sin(0.5 * time / (2 * np.pi))
+        # cos_factor = np.cos(0.5 * time / (2 * np.pi)) * np.cos(0.5 * time / (2 * np.pi))
+        # thrust = thrust_dict[thrust_type] * sin_factor + (1 - thrust_dict[thrust_type]) * cos_factor
+        # thrust *= 0.5
+        # print(thrust, sin_factor, cos_factor)
+        # if j == 20:
+        #     j = 0
+        # if 8 < j < 20:
+        #     thrust = 1 - thrust
+        # j += 1
 
 
         dh.new_data(

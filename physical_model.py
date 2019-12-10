@@ -26,7 +26,7 @@ I_Z_INV = 1.0 / I_z
 VEC_ROLL = np.array([[1, -1, -1, 1]])
 VEC_PITCH = np.array([[1, 1, -1, -1]])
 VEC_YAW = np.array([[1, -1, 1, -1]])
-
+from time import sleep
 def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     """
     Calculate the 3D rotation matrix
@@ -68,7 +68,7 @@ class QuadcopterPhysics:
         self.c_f = coef_force
         self.c_m = coef_moment
         self.c_w = coef_wind
-        self.G = gravity * (4 * self.m_m + self.m_c)
+        self.G = gravity * (4 * self.m_m + self.m_c + self.m_p)
         self.moments_payload = np.zeros([3, 1])
 
         if mass_payload != 0:
@@ -143,23 +143,27 @@ class QuadcopterPhysics:
         :param delta_z: desired change in height (in lab coordinates)
         :return: thrust levels
         """
+        print(pid_outputs)
         desired_roll = pid_outputs[0] * VEC_ROLL
         desired_pitch = pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
-        print(desired_pitch.shape)
 
         thrust = np.array(desired_roll + desired_pitch + desired_yaw)
+        print(thrust)
+        sleep(1)
         vec_sum = np.sum(thrust)
         if vec_sum != 0:
             thrust /= vec_sum
-
+        print(thrust, vec_sum)
+        sleep(1)
         Rot = rotation_matrix(roll, pitch, yaw)
         G_rotated = np.dot(Rot, np.array([[0, 0, -1 * self.G + delta_z]], dtype=np.float32).T)    
-        s = self.c_f / G_rotated[2]
-
-        thrust *= s
-        # TODO possibly here, or in the global declaration:
-        # work on thruster array shape
+        print(G_rotated)
+        sleep(1)
+        ratio = self.c_f / G_rotated[2, 0]
+        print(ratio)
+        thrust *= ratio
+        print(thrust)
         return thrust
 
 

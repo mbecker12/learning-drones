@@ -19,6 +19,7 @@ import socket
 import numpy as np
 import matplotlib.pyplot as plt
 import time as tm
+import re
 
 host = 'localhost'
 port = 65432
@@ -54,7 +55,7 @@ class Plotter:
             pitch_plot = self._setup_subplot(grid, 1, 2, 4, "Pitch", 110, 180, 'g', n_last_states)
             self.pitch_handle,  = pitch_plot.plot(0, 0, c='g')
 
-            yaw_plot = self._setup_subplot(grid, 2, 2, 4, "Roll", 110, 180, 'b', n_last_states)
+            yaw_plot = self._setup_subplot(grid, 2, 2, 4, "Yaw", 110, 180, 'b', n_last_states)
             self.yaw_handle, = yaw_plot.plot(0, 0, c='b')
 
             wind_plot = self._setup_subplot(grid, 3, 2, 4, "Wind", None, 100, 'y', n_last_states)
@@ -76,7 +77,7 @@ class Plotter:
             data = self.socket.recv(1024)
             received = data.decode()
             if printouts: print("[INFO] Message received: ", received)
-            if received == 'quit':
+            if received == 'quit' or 'quit' in received:
                 self.socket.close()
                 return True
             else:
@@ -164,17 +165,21 @@ class Plotter:
 
         # update bar plot
         self.thruster_handle.remove()
-        self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [t1, t2, t3, t4], color='b')
+        self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [t1 * 100, t2 * 100, t3 * 100, t4 * 100], color='b')
 
         self.figure.canvas.draw()
         self.figure.canvas.flush_events()
-        # plt.pause(0.1)
+        plt.pause(0.1)
 
     def _update_translations(self):
         pass
 
     def _decode_message(self, message: str):
-        meaning = message.split(" ")
+        if self.printouts: print("message: " + message)
+        msg = message.split("\n")[-2]
+        meaning = msg.split(" ")
+        if self.printouts: print("msg: " + msg)
+
         try:
             time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = \
                 [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]

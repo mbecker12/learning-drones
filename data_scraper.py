@@ -25,7 +25,7 @@ socket, datetime standard libraries
 import numpy as np
 import socket
 from datetime import datetime
-import os
+import os, sys
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -39,8 +39,9 @@ class DataHandler:
     to .npy files and create one .csv overview file, also it closes the TCPIP socket.
     """
     def __init__(self, parentfolder: str = "", host: str = 'localhost', port: int = 65432, visualize: bool = True,
-                 printouts: bool = True):
+                 printouts: bool = True, n_servers: int = 2):
 
+        self.n_servers = n_servers
         self.printouts = printouts
         self.dir_name = parentfolder + "/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S") + "/"
 
@@ -124,9 +125,15 @@ class DataHandler:
     def _open_server(self, host, port):
         if self.printouts: print("[INFO] Starting up server")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((host, port))
+        try:
+            s.bind((host, port))
+        except OSError as err:
+            logger.error("host: " + str(host))
+            logger.error("port: " + str(port))
+            logger.exception(err)
+            sys.exit()
         self.conn = []
-        for i in range(2):
+        for i in range(self.n_servers):
             s.listen()
             c, addr = s.accept()
             self.conn.append(c)
@@ -138,7 +145,7 @@ class DataHandler:
         message += "roll: {} pitch: {} yaw: {} ".format(*rotation[0])
         message += "x: {} y: {} z: {} ".format(*translation[0])
         message += "t_1: {} t_2: {} t_3: {} t_4: {} ".format(*thrusters[0])
-        message += "v_w: {}".format(wind)
+        message += "v_w: {}\n".format(wind)
         if self.printouts: print("[INFO] Message send: ", message)
         for c in self.conn:
             try:
