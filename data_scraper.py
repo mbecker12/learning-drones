@@ -27,6 +27,9 @@ import socket
 from datetime import datetime
 import os
 import time as tm
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class DataHandler:
@@ -43,7 +46,7 @@ class DataHandler:
 
         # create folder to dump results
         try:
-            os.mkdir(self.dir_name)
+            os.makedirs(self.dir_name, exist_ok=True)
         except OSError:
             print("[ERROR] Creation of the directory {} failed".format(self.dir_name),
                   ". Parentfolders need to be manually created!")
@@ -75,6 +78,9 @@ class DataHandler:
         """
         # check arguments
         if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4):
+            logger.error("rotation.shape: " + str(rotation.shape))
+            logger.error("translation.shape: " + str(translation.shape))
+            logger.error("thrusters.shape: " + str(thrusters.shape))
             raise ValueError('One or more input values are not of the right size')
 
         # talk to visualization tool
@@ -158,7 +164,7 @@ class DataHandler:
 
 
 if __name__ == "__main__":
-    dh = DataHandler(parentfolder="results", visualize=True)
+    dh = DataHandler(parentfolder="results", visualize=False)
     dh.new_data(time=0, rotation=np.array([[1, 2, 3]]),
                 translation=np.array([[2, 3, 1]]),
                 thrusters=np.array([[1, 4.0, 3, 5.0]]), wind=50.341)
