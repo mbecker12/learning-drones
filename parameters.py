@@ -31,3 +31,10 @@ coef_wind = 0.1  # kg/m
 mass_payload = 0  # kg
 x_payload = 0  # m
 y_payload = 0  # m
+
+# PID Constants
+kp = 1
+ti = 1
+td = 1
+ki = kp/ti
+kd = kp * td
