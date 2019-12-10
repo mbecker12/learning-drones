@@ -80,10 +80,11 @@ class Plotter:
                 self.socket.close()
                 return True
             else:
-                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = self._decode_message(message=received)
-                self._update_plots(time, t1, t2, t3, t4)
-                self._store_new_data(rotation=np.array([[roll, pitch, yaw]]) * np.pi/180,
-                                     translation=np.array([[x, y, z]]), wind=wind)
+                print(self._decode_message(message=received))
+                time, rot, trans, thrusters, wind = self._decode_message(message=received)
+                self._update_plots(time, *thrusters)
+                self._store_new_data(rotation=rot,
+                                     translation=trans, wind=wind)
 
                 return False
 
@@ -165,8 +166,9 @@ class Plotter:
         self.thruster_handle.remove()
         self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [t1, t2, t3, t4], color='b')
 
-        self.figure.canvas.draw_idle()
-        plt.pause(0.0001)
+        self.figure.canvas.draw()
+        self.figure.canvas.flush_events()
+        # plt.pause(0.1)
 
     def _update_translations(self):
         pass
@@ -176,10 +178,11 @@ class Plotter:
         try:
             time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = \
                 [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
-            return time, roll * 180 / np.pi, pitch * 180 / np.pi, yaw * 180 / np.pi, x, y, z, t1, t2, t3, t4, wind
+            thrust = (t1, t2, t3, t4)
+            return time, np.array([[roll, pitch, yaw]]) * 180 / np.pi, np.array([[x, y, z]]), thrust, wind
         except ValueError:
             if self.printouts: print("[ERROR] Couldn't decode message")
-            return [0 for i in range(12)]
+            return 0, (0, 0, 0), (0, 0, 0), (0, 0, 0, 0), 0
 
 
 dh = Plotter(host=host, port=port, printouts=printouts, showing="rotations", n_last_states=last_states)
@@ -188,5 +191,6 @@ dh = Plotter(host=host, port=port, printouts=printouts, showing="rotations", n_l
 for i in range(100):
     dh.loop()
 # while dh.loop():
+#     pass
 #     print("Test")
 #     tm.sleep(0.1)

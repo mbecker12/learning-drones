@@ -133,12 +133,18 @@ class DataHandler:
                 self.finish()
 
     def _close_socket(self):
-        try:
-            for c in self.conn:
-                c.sendall("quit".encode())
-                c.close()
-        except BrokenPipeError:
-            print("[ERROR] One connection has been disconnected before closing!")
+        for i in range(len(self.conn)):
+            try:
+                self.conn[i].sendall("quit".encode())
+                self.conn[i].close()
+            except BrokenPipeError:
+                print("[ERROR] One connection has been disconnected before closing!")
+                try:
+                    print((i - 1) * (-1))
+                    self.conn[(i - 1) * (-1)].sendall("quit".encode())
+                    self.conn[(i - 1) * (-1)].close()
+                except OSError:
+                    print("Shit just got real. Abort mission. Abort mission!!!! Kkkkrrrrchh, Schriiimpff.")
         if self.printouts: print("[INFO] Closing sockets")
 
     def _save_npy(self):
@@ -164,7 +170,7 @@ if __name__ == "__main__":
     roll, pitch, yaw, x, y, z = [np.random.randint(-180, 180) for i in range(6)]
     trans = np.array([[x, y, z]])
     rot = np.array([[roll, pitch, yaw]]) * np.pi/180
-    for t in range(500):
+    for t in range(100):
         rot += np.random.randint(-2, 2, [1, 3]) * np.pi/180
         thrust = np.random.randint(0, 100, [1, 4])
         w = np.random.randint(-10, 10)
@@ -172,5 +178,5 @@ if __name__ == "__main__":
         dh.new_data(time=t, rotation=rot,
                     translation=trans,
                     thrusters=thrust, wind=w)
-        tm.sleep(0.5)
+        tm.sleep(0.015)
     dh.finish()
