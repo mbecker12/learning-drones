@@ -27,6 +27,10 @@ import socket
 from datetime import datetime
 import os
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 
 class DataHandler:
     """
@@ -42,7 +46,7 @@ class DataHandler:
 
         # create folder to dump results
         try:
-            os.mkdir(self.dir_name)
+            os.makedirs(self.dir_name, exist_ok=True)
         except OSError:
             print("[ERROR] Creation of the directory {} failed".format(self.dir_name),
                   ". Parentfolders need to be manually created!")
@@ -72,7 +76,18 @@ class DataHandler:
         :param wind:
         :return:
         """
+
         # talk to visualization tools
+
+        # check arguments
+        if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4):
+            logger.error("rotation.shape: " + str(rotation.shape))
+            logger.error("translation.shape: " + str(translation.shape))
+            logger.error("thrusters.shape: " + str(thrusters.shape))
+            raise ValueError('One or more input values are not of the right size')
+
+        # talk to visualization tool
+
         if self.visualize:
             self._send_message(time=time, rotation=rotation, translation=translation, thrusters=thrusters, wind=wind)
 
@@ -179,4 +194,5 @@ if __name__ == "__main__":
                     translation=trans,
                     thrusters=thrust, wind=w)
         tm.sleep(0.015)
+
     dh.finish()
