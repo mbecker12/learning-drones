@@ -48,9 +48,9 @@ class DroneHandle:
             else:
                 roll, pitch, yaw = self._decode_message(message=received)
                 self._update_vtk(obj,
-                                 d_roll=self.roll - roll,
-                                 d_pitch=self.pitch - pitch,
-                                 d_yaw=self.yaw - yaw)
+                                 d_roll=roll - self.roll,
+                                 d_pitch=pitch - self.pitch,
+                                 d_yaw=yaw - self.yaw)
                 self._store_new_data(roll=roll, pitch=pitch, yaw=yaw)
 
         except OSError:
