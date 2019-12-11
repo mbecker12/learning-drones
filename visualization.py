@@ -20,9 +20,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time as tm
 import re
+import sys
 
 host = 'localhost'
 port = 65432
+if len(sys.argv) > 1:
+    port = int(sys.argv[1])
 printouts = True
 last_states = 20
 

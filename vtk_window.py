@@ -16,9 +16,12 @@ import vtk
 import socket
 import numpy as np
 import time as tm
+import sys
 
 host = 'localhost'
 port = 65432
+if len(sys.argv) > 1:
+    port = int(sys.argv[1])
 printouts = True
 
 
@@ -99,7 +102,7 @@ ren = vtk.vtkRenderer()
 ren.SetBackground(0.0, 0.0, 0.0)
 
 renWin = vtk.vtkRenderWindow()
-renWin.SetSize(1600, 1600)
+renWin.SetSize(800, 800)
 # renWin.SetWindowName("Please give me my drone!")
 renWin.AddRenderer(ren)
 

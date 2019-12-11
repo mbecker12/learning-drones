@@ -13,24 +13,29 @@ import sys
 thrust_type = 'pitch'
 
 if __name__ == "__main__":
-    
-    if len(sys.argv) >= 2:
-        visualize = bool(int(sys.argv[1]))
+    if len(sys.argv) >= 1:
+        port = int(sys.argv[1])
+    else:
+        port = 65432
+
+    if len(sys.argv) >= 3:
+        visualize = bool(int(sys.argv[2]))
     else:
         visualize = True
-    
-    if not visualize:
-        if len(sys.argv) >= 2:
-            n_servers = int(sys.argv[2])
-        else:
-            n_servers = 2
 
+    if len(sys.argv) >= 4:
+        n_servers = int(sys.argv[3])
+    else:
+        n_servers = 2
+
+    print(visualize)
+    print(n_servers)
     # initialize drone, choose starting position
     initial_thrust = np.array([[1, 1, 1, 1]])
     initial_roll = 0.0
     initial_pitch = 0.0
     initial_yaw = 0.0
-    initial_vroll = 0.0
+    initial_vroll = -0.5
     initial_vpitch = 0.0
     initial_vyaw = 0.0
     initial_wind_speed = 0.0
@@ -69,7 +74,7 @@ if __name__ == "__main__":
     timesteps = 1000
 
     # Initialize Drone Hardware
-    dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=1)
+    dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t) for _ in range(6)]
     pids = [
         PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
@@ -108,8 +113,9 @@ if __name__ == "__main__":
     previous_thrust = initial_thrust
     j = 5
     for time in range(timesteps):
+        real_time = time * delta_t
         try:
-            sleep(0.1)
+            sleep(0.2)
         except KeyboardInterrupt:
             dh.finish()
         # NB Do we input the correct thrust
@@ -139,10 +145,15 @@ if __name__ == "__main__":
         # replace thruster values by hard coded values
 
         outputs = np.array([
-            np.sin(0.5 * time / (2 * np.pi) + 0 * np.pi * 0.333)**2,
-            np.sin(0.5 * time / (2 * np.pi) + 1 * np.pi * 0.333)**2,
-            np.sin(0.5 * time / (2 * np.pi) + 2 * np.pi * 0.333)**2,
-        ])
+            np.sin(0.5 * time / (2 * np.pi) + 0 * np.pi * 2 * 0.333)**2,
+            0.0,
+            0.0])
+            # 0.0,
+            # np.sin(0.5 * time / (2 * np.pi) + 1 * np.pi * 2 * 0.333)**2,
+            # 0.0
+            # np.sin(0.5 * time / (2 * np.pi) + 2 * np.pi * 0.333)**2,
+        
+        delta_z = -1.0
         thrust = quadcopter.controll_thrust(outputs, roll, pitch, yaw, delta_z)
 
         # sin_factor = np.sin(0.5 * time / (2 * np.pi)) * np.sin(0.5 * time / (2 * np.pi))

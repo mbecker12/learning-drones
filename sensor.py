@@ -25,7 +25,7 @@ class Sensor:
         self.last_acceleration = 0.0
         self.delta_t = delta_t
 
-    def get_acceleration(self):
+    def return_acceleration(self):
         return self.current_acceleration
 
     def measure_acceleration(self, acceleration):
@@ -125,7 +125,7 @@ if __name__ == "__main__":
         if t == n-1:
             break
         s.measure_acceleration(acc + np.random.normal(0.0, 0.0))
-        a[t+1] = s.get_acceleration()
+        a[t+1] = s.return_acceleration()
         x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
         # x[t+1], v[t+1] = s.velocity_verlet(x[t], v[t])
 
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         if t == n-1:
             break
         s.measure_acceleration(acc + np.random.normal(0.0, 0.0))
-        a[t+1] = s.get_acceleration()
+        a[t+1] = s.return_acceleration()
         dv = s.naive_get_delta_v()
         # x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
         x[t+1], v[t+1] = s.velocity_verlet(x[t], v[t])
@@ -198,7 +198,7 @@ if __name__ == "__main__":
         if t == n-1:
             break
         s.measure_acceleration(np.sin(omega * time_grid[t] + np.random.normal(0.0, 0.0)))
-        a[t+1] = s.get_acceleration()
+        a[t+1] = s.return_acceleration()
         dv = s.naive_get_delta_v()
         # x[t+1], v[t+1] = s.get_current_x_and_v(x[t], v[t])
         x[t+1], v[t+1] = s.velocity_verlet(x[t], v[t])
