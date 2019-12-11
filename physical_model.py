@@ -29,11 +29,11 @@ I_Z_INV = 1.0 / I_z
 # VEC_YAW = np.array([[1, -1, 1, -1]])
 
 VEC_ROLL_POS = np.array([[1, 0, 0, 1]])
-VEC_PITCH_POS = np.array([[1, 1, 0, 0]])
-VEC_YAW_POS = np.array([[1, 0, 1, 0]])
+VEC_PITCH_POS = np.array([[0, 0, 1, 1]])
+VEC_YAW_POS = np.array([[0, 1, 0, 1]])
 VEC_ROLL_NEG = np.array([[0, 1, 1, 0]])
-VEC_PITCH_NEG = np.array([[0, 0, 1, 1]])
-VEC_YAW_NEG = np.array([[0, 1, 0, 1]])
+VEC_PITCH_NEG = np.array([[1, 1, 0, 0]])
+VEC_YAW_NEG = np.array([[1, 0, 1, 0]])
 
 from time import sleep
 def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
@@ -111,7 +111,7 @@ class QuadcopterPhysics:
 
         # resulting moments
         L = self.r_m * (T[0, 0] + T[0, 3] - T[0, 1] - T[0, 2])
-        M = self.r_m * (T[0, 0] + T[0, 1] - T[0, 2] - T[0, 3])
+        M = self.r_m * (T[0, 2] + T[0, 3] - T[0, 0] - T[0, 1])
         N = np.sqrt(2) * self.r_m * (R[0, 1] + R[0, 3] - R[0, 0] - R[0, 2])
         moments = np.array([[L, M, N]]).T
         moments += self.moments_payload
@@ -142,7 +142,8 @@ class QuadcopterPhysics:
                         pitch: float,
                         yaw: float,
                         delta_z: float,
-                        threshold: float = 0.0) -> np.ndarray:
+                        threshold: float = 0.0,
+                        limit_range: list = [-1, 1]) -> np.ndarray:
         """
         From the PID outputs, calculate useful thrust levels for all
         four rotors.
@@ -154,6 +155,10 @@ class QuadcopterPhysics:
         :return: thrust levels
         """
         print(pid_outputs)
+        # TODO:
+        # implement model by andrew gibiansky
+        # how can the drone know a stable position only by angular velocities
+
         # Assume pid outputs to be in interval [-1, 1]
         # Other possibility would be to treat pid outputs analagously to probabilities,
         # that would assume pid_outputs to be in [0, 1]
@@ -169,44 +174,56 @@ class QuadcopterPhysics:
         # else:
         #     desired_roll = pid_outputs[0] * VEC_ROLL_POS
         # alternative:
-        desired_roll = pid_outputs[0] * VEC_ROLL_POS + (1 - pid_outputs[0]) * VEC_ROLL_NEG
-        
-        if pid_outputs[1] < threshold:
-            desired_pitch = np.abs(pid_outputs[1]) * VEC_PITCH_NEG
-        else:
-            desired_pitch = pid_outputs[1] * VEC_PITCH_POS
 
-        if pid_outputs[2] < threshold:
-            desired_yaw = np.abs(pid_outputs[2]) * VEC_YAW_NEG
+        if limit_range[0] < 0:
+            if pid_outputs[1] < threshold:
+                desired_roll = np.abs(pid_outputs[0]) * VEC_ROLL_NEG
+            else:
+                desired_roll = pid_outputs[0] * VEC_ROLL_POS
+
+            if pid_outputs[1] < threshold:
+                desired_pitch = np.abs(pid_outputs[1]) * VEC_PITCH_NEG
+            else:
+                desired_pitch = pid_outputs[1] * VEC_PITCH_POS
+
+            if pid_outputs[2] < threshold:
+                desired_yaw = np.abs(pid_outputs[2]) * VEC_YAW_NEG
+            else:
+                desired_yaw = pid_outputs[2] * VEC_YAW_POS
+            
+        elif limit_range[0] == 0:
+            desired_roll = pid_outputs[0] * VEC_ROLL_POS + (1 - pid_outputs[0]) * VEC_ROLL_NEG
+            desired_pitch = pid_outputs[1] * VEC_PITCH_POS + (1 - pid_outputs[1]) * VEC_PITCH_NEG
+            desired_yaw = pid_outputs[2] * VEC_YAW_POS + (1 - pid_outputs[2]) * VEC_YAW_NEG
         else:
-            desired_yaw = pid_outputs[2] * VEC_YAW_POS
+            raise Exception("Enter valid limit range!")
+        
 
         thrust = np.array(desired_roll + desired_pitch + desired_yaw)
         print(thrust)
-        # sleep(1)
-        if False:
+        if True:
             vec_norm = np.linalg.norm(thrust)
             if vec_norm != 0:
                 thrust /= vec_norm
-        if True:
+        if False:
             vec_sum = np.sum(thrust)
             if vec_sum != 0:
                 thrust /= vec_sum
         # get baseline thrust
         # NB: interpret c_f as force per motor
-        print(thrust)
-        base_thrust = self.G / (4 * self.c_f)
-        thrust *= base_thrust
-        print(base_thrust)
-        print(thrust)
+        # print(thrust)
+        # base_thrust = self.G / (4 * self.c_f)
+        # thrust *= base_thrust
+        # print(base_thrust)
+        # print(thrust)
         # print(thrust, vec_sum)
-        Rot = rotation_matrix(roll, pitch, yaw)
-        G_rotated = np.dot(Rot, np.array([[0, 0, -1 * self.G - delta_z]], dtype=np.float32).T)    
+        # Rot = rotation_matrix(roll, pitch, yaw)
+        # G_rotated = np.dot(Rot, np.array([[0, 0, -1 * self.G - delta_z]], dtype=np.float32).T)    
         # print(G_rotated)
 
         # TODO which way around is correct?
         # TODO do we need only the z-component of G_rotated or the norm of the whole vector?
-        # ratio = self.G[2, 0] / -G_rotated[2, 0]
+        # ratio = self.G / -G_rotated[2, 0]
         # ratio = G_rotated[2, 0] / self.c_f
 
         # print(ratio)
@@ -215,6 +232,7 @@ class QuadcopterPhysics:
         # try sigmoid:
         # beta = 2
         # thrust *= math.exp(-np.logaddexp(0, -beta * ratio))
+        # thrust = np.exp(-np.logaddexp(0, -beta * ratio * thrust))
         # print(thrust)
 
         # TODO: Divide by sum or vector norm?
