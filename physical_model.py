@@ -176,7 +176,9 @@ class QuadcopterPhysics:
         # alternative:
 
         if limit_range[0] < 0:
-            if pid_outputs[1] < threshold:
+            print("limit range negative")
+            print("threshold:", threshold)
+            if pid_outputs[0] < threshold:
                 desired_roll = np.abs(pid_outputs[0]) * VEC_ROLL_NEG
             else:
                 desired_roll = pid_outputs[0] * VEC_ROLL_POS
@@ -198,10 +200,11 @@ class QuadcopterPhysics:
         else:
             raise Exception("Enter valid limit range!")
         
-
-        thrust = np.array(desired_roll + desired_pitch + desired_yaw)
+        base_thrust = self.G / (4 * self.c_f)
+        thrust = base_thrust
+        thrust += np.array(desired_roll + desired_pitch + desired_yaw)
         print(thrust)
-        if True:
+        if False:
             vec_norm = np.linalg.norm(thrust)
             if vec_norm != 0:
                 thrust /= vec_norm
@@ -209,11 +212,15 @@ class QuadcopterPhysics:
             vec_sum = np.sum(thrust)
             if vec_sum != 0:
                 thrust /= vec_sum
+        if True:
+            vec_max = np.max(thrust)
+            if vec_max > 1:
+                thrust /= vec_max
+        print(thrust)
         # get baseline thrust
         # NB: interpret c_f as force per motor
         # print(thrust)
-        # base_thrust = self.G / (4 * self.c_f)
-        # thrust *= base_thrust
+        
         # print(base_thrust)
         # print(thrust)
         # print(thrust, vec_sum)

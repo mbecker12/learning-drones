@@ -33,9 +33,9 @@ if __name__ == "__main__":
     # initialize drone, choose starting position
     initial_thrust = np.array([[1, 1, 1, 1]])
     initial_roll = 0.0
-    initial_pitch = 0.0
+    initial_pitch = 0.5
     initial_yaw = 0.0
-    initial_vroll = -0.5
+    initial_vroll = 0.0
     initial_vpitch = 0.0
     initial_vyaw = 0.0
     initial_wind_speed = 0.0
@@ -46,21 +46,6 @@ if __name__ == "__main__":
     initial_vy = 0.0
     initial_vz = 0.0
     delta_t = 0.01
-    
-    thrusts = np.array([
-        [[1, 1, 1, 1]],
-        [[1, 1, 1, 1]],
-        [[1, 1, 1, 1]],
-        [[1, 0, 0, 1]],
-        [[1, 0, 0, 1]],
-        [[1, 0, 0, 1]],
-        [[1, 0, 1, 0]],
-        [[1, 0, 1, 0]],
-        [[1, 0, 1, 0]],
-        [[1, 1, 0, 0]],
-        [[1, 1, 0, 0]],
-        [[1, 1, 0, 0]],
-    ])
 
     roll_thrust = np.array([[1, 0, 0, 1]], dtype=np.float32)
     pitch_thrust = np.array([[1, 1, 0, 0]], dtype=np.float32)
@@ -77,9 +62,9 @@ if __name__ == "__main__":
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t) for _ in range(6)]
     pids = [
-        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
-        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
-        PID(kp=1, ki=1, kd=1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
+        PID(kp=1, ki=0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1, ki=0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1, ki=0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
     ]
     
     quadcopter = QuadcopterPhysics(
@@ -138,28 +123,28 @@ if __name__ == "__main__":
         pitch, vpitch = sensors[4].velocity_verlet(previous_pitch, previous_vpitch)
         yaw, vyaw = sensors[5].velocity_verlet(previous_yaw, previous_vyaw)
 
-        inputs = np.zeros(len(pids))
+        # inputs = np.zeros(len(pids))
+        inputs = np.array([roll, pitch, yaw])
         outputs = [pid.calculate(inputs[i]) for i, pid in enumerate(pids)]
-
+        print("outputs: ", outputs)
         delta_z = 0.0
         # replace thruster values by hard coded values
 
-        outputs = np.array([
-            np.sin(0.5 * time / (2 * np.pi) + 0 * np.pi * 2 * 0.333)**2,
-            0.0,
-            0.0])
-            # 0.0,
-            # np.sin(0.5 * time / (2 * np.pi) + 1 * np.pi * 2 * 0.333)**2,
-            # 0.0
-            # np.sin(0.5 * time / (2 * np.pi) + 2 * np.pi * 0.333)**2,
+        # outputs = np.array([
+        #     0.1,
+        #     0.2,
+        #     0.0])
         
-        delta_z = -1.0
+        # delta_z = -1.0
+        # if time > 20:
+        #     outputs = np.array([0.0, 0.0, 0.0])
         thrust = quadcopter.controll_thrust(outputs, roll, pitch, yaw, delta_z)
 
         # sin_factor = np.sin(0.5 * time / (2 * np.pi)) * np.sin(0.5 * time / (2 * np.pi))
         # cos_factor = np.cos(0.5 * time / (2 * np.pi)) * np.cos(0.5 * time / (2 * np.pi))
         # thrust = thrust_dict[thrust_type] * sin_factor + (1 - thrust_dict[thrust_type]) * cos_factor
         # thrust *= 0.5
+        
         # print(thrust, sin_factor, cos_factor)
         # if j == 20:
         #     j = 0
@@ -167,6 +152,14 @@ if __name__ == "__main__":
         #     thrust = 1 - thrust
         # j += 1
 
+        # roll
+        # thrust = 0.1 * np.array([[1, 0, 0, 1]])
+
+        # pitch
+        # thrust = 0.1 * np.array([[1, 1, 0, 0]])
+        
+        # yaw
+        # thrust = 0.1 * np.array([[0, 1, 0, 1]])
 
         dh.new_data(
             time=time + delta_t,

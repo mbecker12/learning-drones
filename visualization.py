@@ -82,7 +82,7 @@ class Plotter:
             if printouts: print("[INFO] Message received: ", received)
             if received == 'quit' or 'quit' in received:
                 self.socket.close()
-                return True
+                return False
             else:
                 print(self._decode_message(message=received))
                 time, rot, trans, thrusters, wind = self._decode_message(message=received)
@@ -90,12 +90,12 @@ class Plotter:
                 self._store_new_data(rotation=rot,
                                      translation=trans, wind=wind)
 
-                return False
+                return True
 
         except OSError:
             # This is ugly but this should not happen in the real tests
             print("[ERROR] Socket got closed")
-            return True
+            return False
 
     def _open_socket(self, host, port):
         if self.printouts: print("[INFO] Waiting for connection")
@@ -195,9 +195,10 @@ class Plotter:
 
 dh = Plotter(host=host, port=port, printouts=printouts, showing="rotations", n_last_states=last_states)
 
-
-for i in range(100):
-    dh.loop()
+a = True
+while a:
+    a = dh.loop()
+    print(a)
 # while dh.loop():
 #     pass
 #     print("Test")
