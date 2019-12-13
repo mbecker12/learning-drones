@@ -24,16 +24,16 @@ from parameters import *
 I_X_INV = 1.0 / I_x
 I_Y_INV = 1.0 / I_y
 I_Z_INV = 1.0 / I_z
-# VEC_ROLL = np.array([[1, -1, -1, 1]])
-# VEC_PITCH = np.array([[1, 1, -1, -1]])
-# VEC_YAW = np.array([[1, -1, 1, -1]])
+VEC_ROLL = np.array([[1, -1, -1, 1]])
+VEC_PITCH = np.array([[-1, -1, 1, 1]])
+VEC_YAW = np.array([[-1, 1, -1, 1]])
 
-VEC_ROLL_POS = np.array([[1, 0, 0, 1]])
-VEC_PITCH_POS = np.array([[0, 0, 1, 1]])
-VEC_YAW_POS = np.array([[0, 1, 0, 1]])
-VEC_ROLL_NEG = np.array([[0, 1, 1, 0]])
-VEC_PITCH_NEG = np.array([[1, 1, 0, 0]])
-VEC_YAW_NEG = np.array([[1, 0, 1, 0]])
+# VEC_ROLL_POS = np.array([[1, 0, 0, 1]])
+# VEC_PITCH_POS = np.array([[0, 0, 1, 1]])
+# VEC_YAW_POS = np.array([[0, 1, 0, 1]])
+# VEC_ROLL_NEG = np.array([[0, 1, 1, 0]])
+# VEC_PITCH_NEG = np.array([[1, 1, 0, 0]])
+# VEC_YAW_NEG = np.array([[1, 0, 1, 0]])
 
 from time import sleep
 def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
@@ -72,12 +72,11 @@ class QuadcopterPhysics:
                  mass_payload: float = 0, x_payload: float = 0, y_payload: float = 0):
         self.m_c = mass_center
         self.m_m = mass_motor
-        self.m_p = mass_payload
         self.r_m = radius_motor_center
         self.c_f = coef_force
         self.c_m = coef_moment
         self.c_w = coef_wind
-        self.G = gravity * (4 * self.m_m + self.m_c + self.m_p)
+        self.G = gravity * (4 * self.m_m + self.m_c)
         self.moments_payload = np.zeros([3, 1])
 
         if mass_payload != 0:
@@ -175,33 +174,13 @@ class QuadcopterPhysics:
         #     desired_roll = pid_outputs[0] * VEC_ROLL_POS
         # alternative:
 
-        if limit_range[0] < 0:
-            print("limit range negative")
-            print("threshold:", threshold)
-            if pid_outputs[0] < threshold:
-                desired_roll = np.abs(pid_outputs[0]) * VEC_ROLL_NEG
-            else:
-                desired_roll = pid_outputs[0] * VEC_ROLL_POS
+        desired_roll = pid_outputs[0] * VEC_ROLL
+        desired_pitch = pid_outputs[1] * VEC_PITCH
+        desired_yaw = pid_outputs[2] * VEC_YAW
 
-            if pid_outputs[1] < threshold:
-                desired_pitch = np.abs(pid_outputs[1]) * VEC_PITCH_NEG
-            else:
-                desired_pitch = pid_outputs[1] * VEC_PITCH_POS
-
-            if pid_outputs[2] < threshold:
-                desired_yaw = np.abs(pid_outputs[2]) * VEC_YAW_NEG
-            else:
-                desired_yaw = pid_outputs[2] * VEC_YAW_POS
-            
-        elif limit_range[0] == 0:
-            desired_roll = pid_outputs[0] * VEC_ROLL_POS + (1 - pid_outputs[0]) * VEC_ROLL_NEG
-            desired_pitch = pid_outputs[1] * VEC_PITCH_POS + (1 - pid_outputs[1]) * VEC_PITCH_NEG
-            desired_yaw = pid_outputs[2] * VEC_YAW_POS + (1 - pid_outputs[2]) * VEC_YAW_NEG
-        else:
-            raise Exception("Enter valid limit range!")
-        
         base_thrust = self.G / (4 * self.c_f)
         thrust = base_thrust
+        print("base_thrust:", base_thrust)
         thrust += np.array(desired_roll + desired_pitch + desired_yaw)
         print(thrust)
         if False:
@@ -212,47 +191,16 @@ class QuadcopterPhysics:
             vec_sum = np.sum(thrust)
             if vec_sum != 0:
                 thrust /= vec_sum
-        if True:
-            vec_max = np.max(thrust)
+        if False:
+            vec_max = np.max(np.abs(thrust))
             if vec_max > 1:
                 thrust /= vec_max
         print(thrust)
-        # get baseline thrust
-        # NB: interpret c_f as force per motor
-        # print(thrust)
         
-        # print(base_thrust)
-        # print(thrust)
-        # print(thrust, vec_sum)
-        # Rot = rotation_matrix(roll, pitch, yaw)
-        # G_rotated = np.dot(Rot, np.array([[0, 0, -1 * self.G - delta_z]], dtype=np.float32).T)    
-        # print(G_rotated)
-
-        # TODO which way around is correct?
-        # TODO do we need only the z-component of G_rotated or the norm of the whole vector?
-        # ratio = self.G / -G_rotated[2, 0]
-        # ratio = G_rotated[2, 0] / self.c_f
-
-        # print(ratio)
-        # thrust *= np.abs(ratio)
-
-        # try sigmoid:
-        # beta = 2
-        # thrust *= math.exp(-np.logaddexp(0, -beta * ratio))
-        # thrust = np.exp(-np.logaddexp(0, -beta * ratio * thrust))
-        # print(thrust)
-
-        # TODO: Divide by sum or vector norm?
-        # mathematically, to normalize a vector, one should take the norm, right? 
-        # vec_sum = np.sum(thrust)
-        # vec_sum = np.max(thrust)
-        # # vec_sum = np.linalg.norm(thrust)
-
-        # if vec_sum != 0:
-        #     thrust /= vec_sum
+        thrust = np.where(thrust > 1, 1, thrust)
+        thrust = np.where(thrust < 0, 0, thrust)
         for th in thrust[0]:
             assert(0 <= th <= 1)
-        # print(thrust)
         return thrust
 
 

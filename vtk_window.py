@@ -48,9 +48,9 @@ class DroneHandle:
             else:
                 roll, pitch, yaw = self._decode_message(message=received)
                 self._update_vtk(obj,
-                                 d_roll=roll - self.roll,
-                                 d_pitch=pitch - self.pitch,
-                                 d_yaw=yaw - self.yaw)
+                                 l_roll=self.roll, n_roll=roll,
+                                 l_pitch=self.pitch, n_pitch=pitch,
+                                 l_yaw=self.yaw, n_yaw=yaw)
                 self._store_new_data(roll=roll, pitch=pitch, yaw=yaw)
 
         except OSError:
@@ -90,10 +90,16 @@ class DroneHandle:
             if self.printouts: print("[ERROR] Couldn't decode message")
             return 0, 0, 0
 
-    def _update_vtk(self, obj, d_roll: float, d_pitch: float, d_yaw: float):
-        self.actor.RotateX(d_roll)
-        self.actor.RotateY(d_pitch)
-        self.actor.RotateZ(d_yaw)
+    def _update_vtk(self, obj, l_roll: float, l_pitch: float, l_yaw: float,
+                    n_roll: float, n_pitch: float, n_yaw: float):
+        # undo last rotation
+        self.actor.RotateZ(-l_yaw)
+        self.actor.RotateY(-l_pitch)
+        self.actor.RotateX(-l_roll)
+        # do new rotation
+        self.actor.RotateX(n_roll)
+        self.actor.RotateY(n_pitch)
+        self.actor.RotateZ(n_yaw)
         obj.GetRenderWindow().Render()
 
 
