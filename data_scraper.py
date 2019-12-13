@@ -65,16 +65,16 @@ class DataHandler:
         self.thrusters = np.zeros([1, 4], dtype=np.float32)
         self.rotation = np.zeros([1, 3], dtype=np.float32)
         self.translation = np.zeros([1, 3], dtype=np.float32)
-        self.wind = np.zeros([1, 1], dtype=np.float32)
+        self.wind = np.zeros([1, 3], dtype=np.float32)
 
-    def new_data(self, time: float, rotation: np.ndarray, translation: np.ndarray, thrusters: np.ndarray, wind: float):
+    def new_data(self, time: float, rotation: np.ndarray, translation: np.ndarray, thrusters: np.ndarray, wind: np.ndarray):
         """
         Create a new set of data points and visualize them
         :param time:
         :param rotation: [roll, pitch, yaw]
         :param translation: [x, y, z]
         :param thrusters: [t_1, t_2, t_3, t_4]
-        :param wind:
+        :param wind: [w_x, w_y, w_z]
         :return:
         """
 
@@ -140,12 +140,12 @@ class DataHandler:
             if self.printouts: print("[INFO] Client connected to: ", addr)
 
     def _send_message(self, time: float, rotation: np.ndarray, translation: np.ndarray,
-                      thrusters: np.ndarray, wind: float):
+                      thrusters: np.ndarray, wind: np.ndarray):
         message = "time: {} ".format(time)
         message += "roll: {} pitch: {} yaw: {} ".format(*rotation[0])
         message += "x: {} y: {} z: {} ".format(*translation[0])
         message += "t_1: {} t_2: {} t_3: {} t_4: {} ".format(*thrusters[0])
-        message += "v_w: {}\n".format(wind)
+        message += "w_x: {} w_y: {} w_z: {}\n".format(*wind[0])
         if self.printouts: print("[INFO] Message send: ", message)
         for c in self.conn:
             try:
@@ -182,7 +182,7 @@ class DataHandler:
                                   self.rotation * 180/np.pi, self.translation,
                                   self.thrusters, self.wind], axis=1)
         np.savetxt(self.dir_name + "Results.csv", results, delimiter=",",
-                   header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, Windspeed')
+                   header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, WindX, WindY, WindZ')
         if self.printouts: print("[INFO] .csv saved")
 
 

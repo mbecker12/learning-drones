@@ -81,26 +81,25 @@ class QuadcopterPhysics:
 
     def calculate_forces_and_moments(self, thrust: np.ndarray,
                                      roll: float, pitch: float, yaw: float,
-                                     wind_speed: float) -> (np.ndarray, np.ndarray):
+                                     wind_speed: np.ndarray) -> (np.ndarray, np.ndarray):
         """
         name is pretty obvious don't you think?
         :param thrust: [[T_0], [T_1], [T_2], [T_3]]
         :param roll: rot around x
         :param pitch: rot around y
         :param yaw: rot around z
-        :param wind_speed:
+        :param wind_speed: 1x3 vector of wind direction
         :return: (forces vector [[X], [Y], [Z]], moments vector [[L],[M],[N]]
         """
         # calculate current rotations, environment influences, forces and moments of the rotors
         Rot = rotation_matrix(roll, pitch, yaw)
         T = thrust * self.c_f
-        W = wind_speed * self.c_w
         R = thrust * self.c_m
 
         # resulting forces
         forces = np.array([[0, 0, np.sum(T)]], dtype=np.float32).T
         G_rotated = np.dot(Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
-        W_rotated = np.dot(Rot, np.array([[0, -1 * W, 0]], dtype=np.float32).T)
+        W_rotated = np.dot(Rot, wind_speed.astype(np.float32).T * self.c_w)
         forces += G_rotated + W_rotated
 
         # resulting moments

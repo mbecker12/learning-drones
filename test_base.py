@@ -39,7 +39,7 @@ if __name__ == "__main__":
     initial_vroll = np.random.rand() * 2 - 1
     initial_vpitch = np.random.rand() * 2 - 1
     initial_vyaw = np.random.rand() * 2 - 1
-    initial_wind_speed = 25.0
+    initial_wind_speed = np.array([[0.0, 10.0, 0.0]])
     initial_x = 10.0
     initial_y = 10.0
     initial_z = 10.0
