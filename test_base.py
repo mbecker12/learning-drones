@@ -40,6 +40,15 @@ if __name__ == "__main__":
     initial_vpitch = np.random.rand() * 2 - 1
     initial_vyaw = np.random.rand() * 2 - 1
     initial_wind_speed = np.array([[0.0, 10.0, 0.0]])
+    # initialize deterministically
+    initial_roll = np.pi / 2
+    initial_pitch = np.pi / 2
+    initial_yaw = 0.0
+    initial_vroll = 0.0
+    initial_vpitch = 0.0
+    initial_vyaw = 0.0
+    initial_wind_speed = np.array([[0.0, 0.0, 0.0]])
+
     initial_x = 10.0
     initial_y = 10.0
     initial_z = 10.0
@@ -101,6 +110,14 @@ if __name__ == "__main__":
     previous_vpitch = initial_vpitch
     previous_vyaw = initial_vyaw
     previous_thrust = initial_thrust
+
+    forces, moments = quadcopter.calculate_forces_and_moments(
+            thrust=previous_thrust,
+            roll=previous_roll,
+            pitch=previous_pitch,
+            yaw=previous_yaw,
+            wind_speed=previous_wind_speed)
+
     j = 5
     for time in range(timesteps):
         real_time = time * delta_t
@@ -108,13 +125,7 @@ if __name__ == "__main__":
             sleep(0.2)
         except KeyboardInterrupt:
             dh.finish()
-        # NB Do we input the correct thrust
-        forces, moments = quadcopter.calculate_forces_and_moments(
-            thrust=previous_thrust,
-            roll=previous_roll,
-            pitch=previous_pitch,
-            yaw=previous_yaw,
-            wind_speed=previous_wind_speed)
+        # NB Do we input the correct thrust        
 
         lin_acc, rot_acc = quadcopter.convert_to_acceleration(forces, moments)
 
@@ -161,5 +172,12 @@ if __name__ == "__main__":
         previous_vpitch = vpitch
         previous_vyaw = vyaw
         previous_thrust = thrust
+
+        forces, moments = quadcopter.calculate_forces_and_moments(
+            thrust=previous_thrust,
+            roll=previous_roll,
+            pitch=previous_pitch,
+            yaw=previous_yaw,
+            wind_speed=previous_wind_speed)
 
     dh.finish()

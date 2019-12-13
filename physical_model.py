@@ -71,6 +71,7 @@ class QuadcopterPhysics:
         self.c_f = coef_force
         self.c_m = coef_moment
         self.c_w = coef_wind
+        self.Rot = np.identity(3, dtype=np.float32)
         self.G = gravity * (4 * self.m_m + self.m_c)
         self.moments_payload = np.zeros([3, 1])
 
@@ -92,14 +93,15 @@ class QuadcopterPhysics:
         :return: (forces vector [[X], [Y], [Z]], moments vector [[L],[M],[N]]
         """
         # calculate current rotations, environment influences, forces and moments of the rotors
-        Rot = rotation_matrix(roll, pitch, yaw)
+
+        # NB: self.Rot is calculated in 'controll_thrust()' for each time step
         T = thrust * self.c_f
         R = thrust * self.c_m
 
         # resulting forces
         forces = np.array([[0, 0, np.sum(T)]], dtype=np.float32).T
-        G_rotated = np.dot(Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
-        W_rotated = np.dot(Rot, wind_speed.astype(np.float32).T * self.c_w)
+        G_rotated = np.dot(self.Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
+        W_rotated = np.dot(self.Rot, wind_speed.astype(np.float32).T * self.c_w)
         forces += G_rotated + W_rotated
 
         # resulting moments
@@ -147,14 +149,24 @@ class QuadcopterPhysics:
         :param delta_z: desired change in height (in lab coordinates)
         :return: thrust levels
         """
+        self.Rot = rotation_matrix(roll, pitch, yaw)
+
         print(pid_outputs)
         desired_roll = pid_outputs[0] * VEC_ROLL
         desired_pitch = pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
 
         base_thrust = self.G / (4 * self.c_f)
-        thrust = base_thrust
+        # ratio = self.G / base_thrust_force_lab[0, 2]
+        try:
+            ratio = 1. / (np.cos(roll) * np.cos(pitch))
+        except ZeroDivisionError as z_error:
+            ratio = 1.
+
+        thrust = base_thrust * ratio
+        
         print("base_thrust:", base_thrust)
+        print(f"ratio: {ratio}")
         thrust += np.array(desired_roll + desired_pitch + desired_yaw)
         print(thrust)
         if False:
