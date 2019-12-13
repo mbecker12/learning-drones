@@ -132,27 +132,6 @@ if __name__ == "__main__":
       
         thrust = quadcopter.controll_thrust(outputs, roll, pitch, yaw, delta_z)
 
-        # sin_factor = np.sin(0.5 * time / (2 * np.pi)) * np.sin(0.5 * time / (2 * np.pi))
-        # cos_factor = np.cos(0.5 * time / (2 * np.pi)) * np.cos(0.5 * time / (2 * np.pi))
-        # thrust = thrust_dict[thrust_type] * sin_factor + (1 - thrust_dict[thrust_type]) * cos_factor
-        # thrust *= 0.5
-        
-        # print(thrust, sin_factor, cos_factor)
-        # if j == 20:
-        #     j = 0
-        # if 8 < j < 20:
-        #     thrust = 1 - thrust
-        # j += 1
-
-        # roll
-        # thrust = 0.1 * np.array([[1, 0, 0, 1]])
-
-        # pitch
-        # thrust = 0.1 * np.array([[1, 1, 0, 0]])
-        
-        # yaw
-        # thrust = 0.1 * np.array([[0, 1, 0, 1]])
-
         dh.new_data(
             time=time + delta_t,
             rotation=np.array([[roll, pitch, yaw]]),

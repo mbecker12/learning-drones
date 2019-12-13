@@ -184,10 +184,10 @@ class Plotter:
         if self.printouts: print("msg: " + msg)
 
         try:
-            time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = \
+            time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
                 [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
             thrust = (t1, t2, t3, t4)
-            return time, np.array([[roll, pitch, yaw]]) * 180 / np.pi, np.array([[x, y, z]]), thrust, wind
+            return time, np.array([[roll, pitch, yaw]]) * 180 / np.pi, np.array([[x, y, z]]), thrust, windy
         except ValueError:
             if self.printouts: print("[ERROR] Couldn't decode message")
             return 0, (0, 0, 0), (0, 0, 0), (0, 0, 0, 0), 0

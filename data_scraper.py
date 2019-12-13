@@ -97,7 +97,7 @@ class DataHandler:
         self.rotation = np.concatenate([self.rotation, rotation], axis=0)
         self.translation = np.concatenate([self.translation, translation], axis=0)
         self.thrusters = np.concatenate([self.thrusters, thrusters], axis=0)
-        self.wind = np.concatenate([self.wind, np.array([[wind]])], axis=0)
+        self.wind = np.concatenate([self.wind, wind], axis=0)
 
     def finish(self):
         """

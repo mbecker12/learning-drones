@@ -83,7 +83,7 @@ class DroneHandle:
     def _decode_message(self, message: str):
         meaning = message.split(" ")
         try:
-            time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind = \
+            time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
                 [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
             return roll * 180/np.pi, pitch  * 180/np.pi, yaw * 180/np.pi
         except ValueError:
