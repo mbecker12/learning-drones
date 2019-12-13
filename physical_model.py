@@ -28,14 +28,8 @@ VEC_ROLL = np.array([[1, -1, -1, 1]])
 VEC_PITCH = np.array([[-1, -1, 1, 1]])
 VEC_YAW = np.array([[-1, 1, -1, 1]])
 
-# VEC_ROLL_POS = np.array([[1, 0, 0, 1]])
-# VEC_PITCH_POS = np.array([[0, 0, 1, 1]])
-# VEC_YAW_POS = np.array([[0, 1, 0, 1]])
-# VEC_ROLL_NEG = np.array([[0, 1, 1, 0]])
-# VEC_PITCH_NEG = np.array([[1, 1, 0, 0]])
-# VEC_YAW_NEG = np.array([[1, 0, 1, 0]])
-
 from time import sleep
+
 def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     """
     Calculate the 3D rotation matrix
@@ -72,6 +66,7 @@ class QuadcopterPhysics:
                  mass_payload: float = 0, x_payload: float = 0, y_payload: float = 0):
         self.m_c = mass_center
         self.m_m = mass_motor
+        self.m_p = mass_payload
         self.r_m = radius_motor_center
         self.c_f = coef_force
         self.c_m = coef_moment
@@ -154,26 +149,6 @@ class QuadcopterPhysics:
         :return: thrust levels
         """
         print(pid_outputs)
-        # TODO:
-        # implement model by andrew gibiansky
-        # how can the drone know a stable position only by angular velocities
-
-        # Assume pid outputs to be in interval [-1, 1]
-        # Other possibility would be to treat pid outputs analagously to probabilities,
-        # that would assume pid_outputs to be in [0, 1]
-        # desired_roll = pid_outputs[0] * VEC_ROLL_POS + (1 - pid_outputs[0]) * VEC_ROLL_NEG
-
-        # Extra Question: What happens, if the PID says 0 desired thrust for rotation:
-        # Then upwards force will be also 0
-        # How would we handle additive z-force, while maintaining proper vector scaling
-
-
-        # if pid_outputs[0] < threshold:
-        #     desired_roll = np.abs(pid_outputs[0]) * VEC_ROLL_NEG
-        # else:
-        #     desired_roll = pid_outputs[0] * VEC_ROLL_POS
-        # alternative:
-
         desired_roll = pid_outputs[0] * VEC_ROLL
         desired_pitch = pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
@@ -196,7 +171,7 @@ class QuadcopterPhysics:
             if vec_max > 1:
                 thrust /= vec_max
         print(thrust)
-        
+
         thrust = np.where(thrust > 1, 1, thrust)
         thrust = np.where(thrust < 0, 0, thrust)
         for th in thrust[0]:
