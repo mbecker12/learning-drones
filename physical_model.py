@@ -158,14 +158,6 @@ class QuadcopterPhysics:
         thrust += np.array(desired_roll + desired_pitch + desired_yaw)
         print(thrust)
         if False:
-            vec_norm = np.linalg.norm(thrust)
-            if vec_norm != 0:
-                thrust /= vec_norm
-        if False:
-            vec_sum = np.sum(thrust)
-            if vec_sum != 0:
-                thrust /= vec_sum
-        if False:
             vec_max = np.max(np.abs(thrust))
             if vec_max > 1:
                 thrust /= vec_max

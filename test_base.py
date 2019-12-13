@@ -62,9 +62,13 @@ if __name__ == "__main__":
     # Initialize Drone Hardware
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t) for _ in range(6)]
-    pids = [
+    rot_pids = [
         PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
         PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
+    ]
+
+    lin_pids = [
         PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
     ]
     
@@ -125,12 +129,16 @@ if __name__ == "__main__":
         yaw, vyaw = sensors[5].velocity_verlet(previous_yaw, previous_vyaw)
 
         # inputs = np.zeros(len(pids))
-        inputs = np.array([roll, pitch, yaw])
-        outputs = [pid.calculate(inputs[i]) for i, pid in enumerate(pids)]
-        print("outputs: ", outputs)
-        delta_z = 0.0
+        rot_inputs = np.array([roll, pitch, yaw])
+        rot_outputs = [pid.calculate(rot_inputs[i]) for i, pid in enumerate(rot_pids)]
+
+        lin_inputs = np.array([pos_z])
+        lin_outputs = [pid.calculate(lin_inputs[i]) for i, pid in enumerate(lin_pids)]
+        print("rot_outputs: ", rot_outputs)
+        print("lin_outputs: ", lin_outputs)
+        delta_z = lin_outputs[0]
       
-        thrust = quadcopter.controll_thrust(outputs, roll, pitch, yaw, delta_z)
+        thrust = quadcopter.controll_thrust(rot_outputs, roll, pitch, yaw, delta_z)
 
         dh.new_data(
             time=time + delta_t,
