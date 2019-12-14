@@ -67,7 +67,7 @@ class DataHandler:
         self.thrusters = np.zeros([1, 4], dtype=np.float32)
         self.rotation = np.zeros([1, 3], dtype=np.float32)
         self.translation = np.zeros([1, 3], dtype=np.float32)
-        self.wind = np.zeros([1, 2], dtype=np.float32)
+        self.wind = np.zeros([1, 3], dtype=np.float32)
         self.pid = np.zeros([1, 3], dtype=np.float32)
         self.setpoints = np.zeros([1, 6], dtype=np.float32)
 

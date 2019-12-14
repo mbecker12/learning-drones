@@ -8,8 +8,10 @@ Marvin Becker
 TODO: play from file option
 TODO: split in 2 figures
 
-Python 3.6.5
+Python 3.6.5 and 3.6.7
 Library version:
+vtk 8.1
+matplotlib 3.1.2
 
 
 """
