@@ -3,6 +3,7 @@ Created by Jan Schiffeler at 01.12.19
 jan.schiffeler[at]gmail.com
 
 Changed by
+Marvin Becker
 
     .-.      .-.
    | 0 |    | 1 |
@@ -27,9 +28,7 @@ I_Z_INV = 1.0 / I_z
 VEC_ROLL = np.array([[1, -1, -1, 1]])
 VEC_PITCH = np.array([[-1, -1, 1, 1]])
 VEC_YAW = np.array([[-1, 1, -1, 1]])
-
 from time import sleep
-
 
 def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     """
