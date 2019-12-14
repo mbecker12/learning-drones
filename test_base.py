@@ -116,7 +116,6 @@ if __name__ == "__main__":
             yaw=previous_yaw,
             wind_speed=previous_wind_speed)
 
-    j = 5
     for time in range(timesteps):
         real_time = time * delta_t
         try:
@@ -130,7 +129,6 @@ if __name__ == "__main__":
         # handle accelerations:
         lin_acc_lab = np.dot(quadcopter.Rot, lin_acc)
         print(f"lin_acc_lab: {lin_acc_lab}")
-
 
         [sensors[i].measure_acceleration(lin_acc[i, 0]) for i in range(3)]
         [sensors[i].measure_acceleration(rot_acc[i-3, 0]) for i in range(3, 6)]
@@ -182,7 +180,7 @@ if __name__ == "__main__":
             rotation=np.array([[roll, pitch, yaw]]),
             translation=np.array([[pos_x, pos_y, pos_z]]),
             thrusters=previous_thrust,
-            wind=previous_wind_speed)
+            wind=previous_wind_speed, pid=np.array([[*rot_outputs]]))
 
         forces, moments = quadcopter.calculate_forces_and_moments(
             thrust=previous_thrust,
