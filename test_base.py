@@ -41,8 +41,8 @@ if __name__ == "__main__":
     initial_vyaw = np.random.rand() * 2 - 1
     initial_wind_speed = np.array([[0.0, 10.0, 0.0]])
     # initialize deterministically
-    initial_roll = np.pi / 2
-    initial_pitch = np.pi / 2
+    initial_roll = 120 * np.pi / 180
+    initial_pitch = 0.0
     initial_yaw = 0.0
     initial_vroll = 0.0
     initial_vpitch = 0.0
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     }
 
     timesteps = 1000
-
+    
     # Initialize Drone Hardware
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t) for _ in range(6)]
@@ -149,8 +149,8 @@ if __name__ == "__main__":
         print("lin_outputs: ", lin_outputs)
         delta_z = lin_outputs[0]
       
-        thrust = quadcopter.controll_thrust(rot_outputs, roll, pitch, yaw, delta_z)
-
+        thrust = quadcopter.control_thrust(rot_outputs, roll, pitch, yaw, delta_z)
+        print(pos_z)
         dh.new_data(
             time=time + delta_t,
             rotation=np.array([[roll, pitch, yaw]]),
