@@ -67,7 +67,7 @@ class DataHandler:
         self.thrusters = np.zeros([1, 4], dtype=np.float32)
         self.rotation = np.zeros([1, 3], dtype=np.float32)
         self.translation = np.zeros([1, 3], dtype=np.float32)
-        self.wind = np.zeros([1, 3], dtype=np.float32)
+        self.wind = np.zeros([1, 2], dtype=np.float32)
         self.pid = np.zeros([1, 3], dtype=np.float32)
         self.setpoints = np.zeros([1, 6], dtype=np.float32)
 
@@ -80,10 +80,9 @@ class DataHandler:
         :param translation: [x, y, z]
         :param thrusters: [t_1, t_2, t_3, t_4]
         :param wind: [w_x, w_y, w_z]
+        :param pid: [c_roll, c_pitch, c_yaw]
         :return:
         """
-
-        # talk to visualization tools
 
         # check arguments
         if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4):
@@ -102,7 +101,7 @@ class DataHandler:
         self.rotation = np.concatenate([self.rotation, rotation], axis=0)
         self.translation = np.concatenate([self.translation, translation], axis=0)
         self.thrusters = np.concatenate([self.thrusters, thrusters], axis=0)
-        self.wind = np.concatenate([self.wind, wind[0, :2]], axis=0)
+        self.wind = np.concatenate([self.wind, wind[0, :2][np.newaxis, :]], axis=0)
         self.pid = np.concatenate([self.pid, pid], axis=0)
 
     def new_setpoints(self, rotation: np.ndarray, translation: np.ndarray):
@@ -135,6 +134,7 @@ class DataHandler:
         self.translation = self.translation[1:, :]
         self.thrusters = self.thrusters[1:, :]
         self.wind = self.wind[1:, :]
+        self.pid = self.pid[1:, :]
 
         # save data
         self._save_csv()
@@ -202,29 +202,33 @@ class DataHandler:
         if self.printouts: print("[INFO] .npy saved")
 
     def _save_csv(self):
+        delta = self.time.shape[0] - self.setpoints.shape[0]
+        if delta != 0:
+            setpoints = np.repeat(a=self.setpoints[-1][np.newaxis, :], repeats=delta, axis=0)
+            self.setpoints = np.concatenate([self.setpoints, setpoints], axis=0)
         results = np.concatenate([self.time,
                                   self.rotation * 180/np.pi, self.translation,
                                   self.thrusters, self.wind, self.pid, self.setpoints], axis=1)
         np.savetxt(self.dir_name + "Results.csv", results, delimiter=",",
-                   header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, WindX, WindY, WindZ,'
+                   header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, Wind X, Wind Y,'
                           ' PID Roll, PID Pitch, PID Yaw, Set Roll, Set Pitch, Set Yaw, Set X, Set Y, Set Z')
         if self.printouts: print("[INFO] .csv saved")
 
 
 if __name__ == "__main__":
     import time as tm
-    dh = DataHandler(parentfolder="results", visualize=True)
+    dh = DataHandler(parentfolder="results", visualize=False)
     roll, pitch, yaw, x, y, z = [np.random.randint(-50, 50) for i in range(6)]
     trans = np.array([[x, y, z]])
     rot = np.array([[roll, pitch, yaw]]) * np.pi/180
-    for t in range(400):
+    for t in range(10):
         rot += np.random.randint(-10, 10, [1, 3]) * np.pi/180
         thrust = np.random.random([1, 4])
         w = np.random.randint(-10, 10, [1, 3])
 
         dh.new_data(time=t, rotation=rot,
                     translation=trans,
-                    thrusters=thrust, wind=w)
-        tm.sleep(0.1)
+                    thrusters=thrust, wind=w, pid=np.array([[0.5, 0.8, 20]]))
+        # tm.sleep(0.1)
 
     dh.finish()
