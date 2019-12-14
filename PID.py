@@ -100,9 +100,6 @@ class PID:
         return self.check_output(output)
 
     def accumulate_error(self, error):
-
-    def accumulate_error(self, error):
-
         if np.abs(error) < self.integralRange:
             self.integralError += error
 
