@@ -182,7 +182,7 @@ class QuadcopterPhysics:
         desired_roll = pid_outputs[0] * VEC_ROLL
         desired_pitch = pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
-        print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")
+        # print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")
         base_thrust = self.G / (4 * self.c_f) + delta_z
         print(f"self.G: {self.G}")
         base_thrust_vec = np.ones((1, 4)) * base_thrust
@@ -195,12 +195,12 @@ class QuadcopterPhysics:
             ratio = 1.
 
         thrust = base_thrust_vec * ratio
-        print(f"thrust: {thrust}")
+        # print(f"thrust: {thrust}")
         thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
         thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
 
-        print("base_thrust:", base_thrust_vec)
-        print(f"ratio: {ratio}")
+        # print("base_thrust:", base_thrust_vec)
+        # print(f"ratio: {ratio}")
         thrust += np.array(desired_roll + desired_pitch + desired_yaw)
         print(f"thrust: {thrust}")
 
