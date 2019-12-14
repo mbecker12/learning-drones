@@ -133,8 +133,8 @@ class Plotter:
             # init height plot
             height_plot, height_sp = self._setup_lineplot(grid=grid, row=3, start_column=2, end_column=4,
                                                           label="Height", set_point=0, range_lower=0, range_upper=100,
-                                                          color='y', x_size=n_last_states)
-            self.height_handle, = height_plot.plot(0, 0, c='r')
+                                                          color='b', x_size=n_last_states)
+            self.height_handle, = height_plot.plot(0, 0, c='b')
 
             # init thruster plot
             self.thruster_plot = self._setup_barplot(grid=grid, label="Thrusters", set_point=0)
@@ -152,17 +152,19 @@ class Plotter:
     def loop(self, *args):
         try:
             data = self.socket.recv(1024)
-            received = data.decode()
-            if printouts: print("[INFO] Message received: ", received)
+            # received = "time: 60.01 roll: 0.5236 pitch: 0.0000 yaw: 0.0000 x: 10.0 y: 9.13156979727745 z:
+            # 8.436974647712704 t_1: 0.0 t_2: 0.0 t_3: 0.0 t_4: 0.0 w_x: 1.0 w_y: 0.0 w_z: 0.0\n"
+            # received = "SETPOINTS roll: 90 pitch: 40 yaw: -30 x: 20 y: -30 z: 50\n"
+            received =  data.decode()
+            # if printouts: print("[INFO] Message received: ", received)
             if 'quit' in received:
                 self.socket.close()
                 print("[INFO] Socket got closed")
                 quit()
             else:
-                print(self._decode_message(message=received))
-                time, info = self._decode_message(message=received)
-                if type(time) == float:
-                    rot, trans, thrusters, wind = info
+                message_type, info = self._decode_message(message=received)
+                if message_type:
+                    time, rot, trans, thrusters, wind = info
                     self._update_plots(time=time, thrusters=thrusters)
                     self._store_new_data(rotation=rot,
                                          translation=trans, wind=wind)
@@ -235,8 +237,11 @@ class Plotter:
         # setpoint
         if set_point is not None:
             target = ax.axhline(y=set_point, lw=1, c=color)
-        ax.axis([0, x_size + 10, range_lower - 10, range_upper + 10])
-        return ax, target
+            ax.axis([0, x_size + 10, range_lower - 10, range_upper + 10])
+            return ax, target
+        else:
+            ax.axis([0, x_size + 10, range_lower - 10, range_upper + 10])
+            return ax
 
     # ROTATION FUNCTIONS
     def _update_rotations(self, time: float, thrusters: tuple):
@@ -293,8 +298,8 @@ class Plotter:
 
     def _setpoints_translation(self, info):
         self.setpoint_handler["height"].remove()
-        self.setpoint_handler["height"] = self.plots["height"].axhline(y=info[3], lw=1, c='r')
-        self.setpoint_xy.setoffsets(info[4])
+        self.setpoint_handler["height"] = self.plots["height"].axhline(y=info[3], lw=1, c='b')
+        self.setpoint_xy.set_offsets(info[4])
 
     def _arrow_position(self):
         wind = 1 / np.linalg.norm(self.wind[-1, :]) * self.wind[-1, :]
@@ -324,20 +329,20 @@ class Plotter:
         # if self.printouts: print("message: " + message)
         msg = message.split("\n")[-2]
         meaning = msg.split(" ")
-        if self.printouts: print("message: " + msg)
+        if self.printouts: print("[INFO] Latest Message: " + msg)
         if meaning[0] == "SETPOINTS":
-            roll, pitch, yaw, x, y, z = [float(meaning[2 * i + 1]) for i in range(1, int(len(meaning) / 2))]
-            return roll, pitch, yaw, z, (x, y)
+            roll, pitch, yaw, x, y, z = [float(meaning[i]) for i in range(2, len(meaning), 2)]
+            return False, (roll, pitch, yaw, z, (x, y))
         else:
             try:
                 time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind_x, wind_y, wind_z = \
                     [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
                 thrust = (t1 * 100, t2 * 100, t3 * 100, t4 * 100)
-                return time, np.array([[roll, pitch, yaw]]) * 180 / np.pi, np.array([[x, y, z]]), thrust, \
-                    np.array([[wind_x, wind_y]])
+                return True, (time, np.array([[roll, pitch, yaw]]) * 180 / np.pi, np.array([[x, y, z]]), thrust,
+                              np.array([[wind_x, wind_y]]))
             except ValueError:
                 if self.printouts: print("[ERROR] Couldn't decode message")
-                return 0, (0, 0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0)
+                return 0, ((0, 0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0))
 
     # OTHER
     def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float):
