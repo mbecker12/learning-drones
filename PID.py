@@ -103,3 +103,6 @@ class PID:
             output = 1.
         # print("output after limits:", output)
         return output
+
+    def set_setpoint(self, point):
+        self.setValue = point
