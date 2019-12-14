@@ -68,7 +68,7 @@ class DataHandler:
         self.rotation = np.zeros([1, 3], dtype=np.float32)
         self.translation = np.zeros([1, 3], dtype=np.float32)
         self.wind = np.zeros([1, 2], dtype=np.float32)
-        self.pid = np.zeros([1, 3], dtype=np.float32)
+        self.pid = np.zeros([1, 6], dtype=np.float32)
         self.setpoints = np.zeros([1, 6], dtype=np.float32)
 
     def new_data(self, time: float, rotation: np.ndarray, translation: np.ndarray, thrusters: np.ndarray,
@@ -85,10 +85,13 @@ class DataHandler:
         """
 
         # check arguments
-        if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4):
+        if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4)\
+                or wind.shape != (1, 3) or pid.shape != (1, 6):
             logger.error("rotation.shape: " + str(rotation.shape))
             logger.error("translation.shape: " + str(translation.shape))
             logger.error("thrusters.shape: " + str(thrusters.shape))
+            logger.error("wind.shape: " + str(wind.shape))
+            logger.error("pid.shape: " + str(pid.shape))
             raise ValueError('One or more input values are not of the right size')
 
         # talk to visualization tool
@@ -106,7 +109,7 @@ class DataHandler:
 
     def new_setpoints(self, rotation: np.ndarray, translation: np.ndarray):
         message = "SETPOINTS roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(*rotation[0])
-        message += "x: {} y: {} z: {} ".format(*translation[0])
+        message += "x: {} y: {} z: {}\n".format(*translation[0])
         if self.printouts: print("[INFO] Message send: ", message)
         for c in self.conn:
             try:

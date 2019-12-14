@@ -108,7 +108,7 @@ ren = vtk.vtkRenderer()
 ren.SetBackground(0.0, 0.0, 0.0)
 
 renWin = vtk.vtkRenderWindow()
-renWin.SetSize(800, 800)
+renWin.SetSize(1600, 1600)
 # renWin.SetWindowName("Please give me my drone!")
 renWin.AddRenderer(ren)
 

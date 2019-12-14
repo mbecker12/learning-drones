@@ -122,11 +122,11 @@ class QuadcopterPhysics:
         # resulting forces
         # thrust forces in drone coordinates
         forces = np.array([[0, 0, np.sum(T)]], dtype=np.float32).T
-        print(f"forces: {forces}")
+        # print(f"forces: {forces}")
         G_rotated = np.dot(self.Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
         W_rotated = np.dot(self.Rot, wind_speed.astype(np.float32).T * self.c_w)
         forces += G_rotated + W_rotated
-        print(f"G_rotated: {G_rotated}")
+        # print(f"G_rotated: {G_rotated}")
 
         # resulting moments
         L = self.r_m * (T[0, 0] + T[0, 3] - T[0, 1] - T[0, 2])
@@ -135,7 +135,7 @@ class QuadcopterPhysics:
         moments = np.array([[L, M, N]]).T
         moments += self.moments_payload
 
-        print(f"forces: {forces}")
+        # print(f"forces: {forces}")
         # return forces in drone's reference frame
         return forces, moments
 
@@ -144,13 +144,13 @@ class QuadcopterPhysics:
                                 moments: np.ndarray) -> (np.ndarray, np.ndarray):
         """
         Convert the forces and momenta to useful linear and rotational
-        acceleration, resepectively.
+        acceleration, respectively.
         :param forces: calculated linear forces
         :param moments: calculated rotational moments
         :return: (linear acceleration, rotational acceleration)
         """
         lin_acc = np.divide(forces, self.m_c + 4 * self.m_m + self.m_p)
-        print(f"lin_acc: {lin_acc}")
+        # print(f"lin_acc: {lin_acc}")
         rot_acc = np.array([
             moments[0] * I_X_INV,
             moments[1] * I_Y_INV,
