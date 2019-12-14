@@ -30,6 +30,7 @@ VEC_YAW = np.array([[-1, 1, -1, 1]])
 
 from time import sleep
 
+
 def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     """
     Calculate the 3D rotation matrix
@@ -50,7 +51,25 @@ def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
                     [np.sin(yaw),      np.cos(yaw), 0],
                     [          0,                0, 1]])
 
-    return np.dot(R_z, np.dot(R_y, R_x))
+    return np.dot(R_z, np.dot(R_y, R_x)).T
+    # return np.dot(R_x, np.dot(R_y, R_z))
+
+
+def translational_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
+    """
+    Calculate the rotational matrix to convert angular velocities 
+    from drone-frame to inertial frame.
+    :param roll: rot around x
+    :param pitch: rot around y
+    :param yaw: rot around z
+    :return: translational matrix
+    """
+
+    T = np.array([[1, np.sin(roll) * np.tan(pitch), np.cos(roll) * np.tan(pitch)],
+                  [0, np.cos(roll)               , -np.sin(roll)],
+                  [0, np.sin(roll) / np.cos(pitch), np.cos(roll) / np.cos(pitch)]], dtype=np.float32)
+
+    return T
 
 
 class QuadcopterPhysics:
@@ -101,10 +120,13 @@ class QuadcopterPhysics:
         R = thrust * self.c_m
 
         # resulting forces
+        # thrust forces in drone coordinates
         forces = np.array([[0, 0, np.sum(T)]], dtype=np.float32).T
+        print(f"forces: {forces}")
         G_rotated = np.dot(self.Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
         W_rotated = np.dot(self.Rot, wind_speed.astype(np.float32).T * self.c_w)
         forces += G_rotated + W_rotated
+        print(f"G_rotated: {G_rotated}")
 
         # resulting moments
         L = self.r_m * (T[0, 0] + T[0, 3] - T[0, 1] - T[0, 2])
@@ -128,6 +150,7 @@ class QuadcopterPhysics:
         :return: (linear acceleration, rotational acceleration)
         """
         lin_acc = np.divide(forces, self.m_c + 4 * self.m_m + self.m_p)
+        print(f"lin_acc: {lin_acc}")
         rot_acc = np.array([
             moments[0] * I_X_INV,
             moments[1] * I_Y_INV,
@@ -155,27 +178,31 @@ class QuadcopterPhysics:
         """
         self.Rot = rotation_matrix(roll, pitch, yaw)
 
-        print(pid_outputs)
+        print(f"pid_outputs: {pid_outputs}")
         desired_roll = pid_outputs[0] * VEC_ROLL
         desired_pitch = pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
-        print(np.array(desired_roll + desired_pitch + desired_yaw))
+        print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")
         base_thrust = self.G / (4 * self.c_f) + delta_z
+        print(f"self.G: {self.G}")
+        base_thrust_vec = np.ones((1, 4)) * base_thrust
         # ratio = self.G / base_thrust_force_lab[0, 2]
         try:
             ratio = 1. / (math.cos(roll) * math.cos(pitch))
+            print(f"ratio: {ratio}")
         except ZeroDivisionError as z_error:
             print("zerror")
             ratio = 1.
 
-        thrust = base_thrust * ratio
+        thrust = base_thrust_vec * ratio
+        print(f"thrust: {thrust}")
         thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
         thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
 
-        print("base_thrust:", base_thrust)
+        print("base_thrust:", base_thrust_vec)
         print(f"ratio: {ratio}")
         thrust += np.array(desired_roll + desired_pitch + desired_yaw)
-        print(thrust)
+        print(f"thrust: {thrust}")
 
         thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
         thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)

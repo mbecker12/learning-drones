@@ -28,8 +28,6 @@ if __name__ == "__main__":
     else:
         n_servers = 2
 
-    print(visualize)
-    print(n_servers)
     # initialize drone, choose starting position
     initial_thrust = np.array([[0, 0, 0, 0]])
     # initialize randomly
@@ -39,11 +37,11 @@ if __name__ == "__main__":
     initial_vroll = np.random.rand() * 2 - 1
     initial_vpitch = np.random.rand() * 2 - 1
     initial_vyaw = np.random.rand() * 2 - 1
-    initial_wind_speed = np.array([[0.0, 10.0, 0.0]])
+    initial_wind_speed = np.array([[0.0, 0.0, 0.0]])
     # initialize deterministically
-    initial_roll = 120 * np.pi / 180
-    initial_pitch = 0.0
-    initial_yaw = 0.0
+    initial_roll = 30 * np.pi / 180
+    initial_pitch = 00 * np.pi / 180
+    initial_yaw = 0 * np.pi / 180
     initial_vroll = 0.0
     initial_vpitch = 0.0
     initial_vyaw = 0.0
@@ -72,13 +70,13 @@ if __name__ == "__main__":
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t) for _ in range(6)]
     rot_pids = [
-        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
-        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=30 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=00 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
         PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
     ]
 
     lin_pids = [
-        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
+        PID(kp=1.5, ki=0.0, kd=0.3, timeStep=delta_t, setValue=10, integralRange=2, calculateFlag="rangeExit")
     ]
     
     quadcopter = QuadcopterPhysics(
@@ -125,9 +123,14 @@ if __name__ == "__main__":
             sleep(0.2)
         except KeyboardInterrupt:
             dh.finish()
-        # NB Do we input the correct thrust        
 
+        # accelerations in drone frame
         lin_acc, rot_acc = quadcopter.convert_to_acceleration(forces, moments)
+
+        # handle accelerations:
+        lin_acc_lab = np.dot(quadcopter.Rot, lin_acc)
+        print(f"lin_acc_lab: {lin_acc_lab}")
+
 
         [sensors[i].measure_acceleration(lin_acc[i, 0]) for i in range(3)]
         [sensors[i].measure_acceleration(rot_acc[i-3, 0]) for i in range(3, 6)]
@@ -139,6 +142,10 @@ if __name__ == "__main__":
         pitch, vpitch = sensors[4].velocity_verlet(previous_pitch, previous_vpitch)
         yaw, vyaw = sensors[5].velocity_verlet(previous_yaw, previous_vyaw)
 
+        # print(f"x: {pos_x}, vx: {vel_x}, ax: {sensors[0].return_acceleration()}")
+        # print(f"y: {pos_y}, vy: {vel_y}, ay: {sensors[1].return_acceleration()}")
+        # print(f"z: {pos_z}, vz: {vel_z}, az: {sensors[2].return_acceleration()}")
+
         # inputs = np.zeros(len(pids))
         rot_inputs = np.array([roll, pitch, yaw])
         rot_outputs = [pid.calculate(rot_inputs[i]) for i, pid in enumerate(rot_pids)]
@@ -148,15 +155,12 @@ if __name__ == "__main__":
         print("rot_outputs: ", rot_outputs)
         print("lin_outputs: ", lin_outputs)
         delta_z = lin_outputs[0]
+        # delta_z = 0.0
       
         thrust = quadcopter.control_thrust(rot_outputs, roll, pitch, yaw, delta_z)
+        thrust = np.array([[0., 0., 0., 0.]])
         print(pos_z)
-        dh.new_data(
-            time=time + delta_t,
-            rotation=np.array([[roll, pitch, yaw]]),
-            translation=np.array([[pos_x, pos_y, pos_z]]),
-            thrusters=previous_thrust,
-            wind=previous_wind_speed)
+        
 
         # Update Values
         previous_x = pos_x
@@ -172,6 +176,13 @@ if __name__ == "__main__":
         previous_vpitch = vpitch
         previous_vyaw = vyaw
         previous_thrust = thrust
+
+        dh.new_data(
+            time=time + delta_t,
+            rotation=np.array([[roll, pitch, yaw]]),
+            translation=np.array([[pos_x, pos_y, pos_z]]),
+            thrusters=previous_thrust,
+            wind=previous_wind_speed)
 
         forces, moments = quadcopter.calculate_forces_and_moments(
             thrust=previous_thrust,
