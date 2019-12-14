@@ -163,6 +163,8 @@ class Plotter:
                 quit()
             else:
                 message_type, info = self._decode_message(message=received)
+                print("MSG TYPE: ", message_type)
+                print("INFO : ", info)
                 if message_type:
                     time, rot, trans, thrusters, wind = info
                     self._update_plots(time=time, thrusters=thrusters)

@@ -229,6 +229,6 @@ if __name__ == "__main__":
         dh.new_data(time=t, rotation=rot,
                     translation=trans,
                     thrusters=thrust, wind=w, pid=np.array([[0.5, 0.8, 20]]))
-        # tm.sleep(0.1)
+        tm.sleep(0.1)
 
     dh.finish()
