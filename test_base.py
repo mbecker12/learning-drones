@@ -42,7 +42,7 @@ if __name__ == "__main__":
     initial_wind_speed = np.array([[0.0, 0.0, 0.0]])
     # initialize deterministically
     initial_roll = 0 * np.pi / 180
-    initial_pitch = 30 * np.pi / 180
+    initial_pitch = 0 * np.pi / 180
     initial_yaw = 0 * np.pi / 180
     initial_vroll = 0.0
     initial_vpitch = 0.0
@@ -72,9 +72,9 @@ if __name__ == "__main__":
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t) for _ in range(6)]
     rot_pids = [
-        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
-        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=30 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
-        PID(kp=1, ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
+        PID(kp=1., ki=0.0, kd=0.1, timeStep=delta_t, setValue=0 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1., ki=0.0, kd=0.1, timeStep=delta_t, setValue=0 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1., ki=0.0, kd=0.1, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit")
     ]
 
     lin_pids = [
@@ -126,7 +126,9 @@ if __name__ == "__main__":
         real_time = time * delta_t
 
         sp = 0.52 - time * 0.01
-        rot_pids[1].set_setpoint(sp if sp > 0 else 0)
+        sp = np.sin(time * np.pi * 0.01) * 0.5
+        sp = 30 * np.pi / 180
+        rot_pids[1].set_setpoint(sp)# if sp > 0 else 0)
         try:
             sleep(0.2)
         except KeyboardInterrupt:
@@ -155,15 +157,14 @@ if __name__ == "__main__":
         drone_lin_vel = np.array([[vel_x], [vel_y], [vel_z]])
         drone_ang_vel = np.array([[vroll], [vpitch], [vyaw]])
 
-        lab_lin_vel = np.dot(Tr, drone_lin_vel)
+        lab_lin_vel = np.dot(quadcopter.Rot.T, drone_lin_vel)
         lab_ang_vel = np.dot(Tr, drone_ang_vel)
         lab_pos = lab_pos + verlet_get_delta_x(lab_lin_vel, lab_lin_acc, delta_t)
         lab_lin_vel = lab_lin_vel + verlet_get_delta_v(lab_lin_acc, lab_lin_acc, delta_t)
         
-
-        print(f"x: {pos_x}, vx: {vel_x}, ax: {sensors[0].return_acceleration()}")
-        print(f"y: {pos_y}, vy: {vel_y}, ay: {sensors[1].return_acceleration()}")
-        print(f"z: {pos_z}, vz: {vel_z}, az: {sensors[2].return_acceleration()}")
+        print(f"x: {lab_pos[0, 0]}, vx: {lab_lin_vel[0, 0]}, ax: {lab_lin_acc[0, 0]}")
+        print(f"y: {lab_pos[1, 0]}, vy: {lab_lin_vel[1, 0]}, ay: {lab_lin_acc[1, 0]}")
+        print(f"z: {lab_pos[2, 0]}, vz: {lab_lin_vel[2, 0]}, az: {lab_lin_acc[2, 0]}")
 
         # inputs = np.zeros(len(pids))
         rot_inputs = np.array([roll, pitch, yaw])
@@ -172,8 +173,8 @@ if __name__ == "__main__":
         # lin_inputs = np.array([pos_z])
         lin_inputs = np.array([lab_pos[2, 0]])
         lin_outputs = [pid.calculate(lin_inputs[i]) for i, pid in enumerate(lin_pids)]
-        # print("rot_outputs: ", rot_outputs)
-        # print("lin_outputs: ", lin_outputs)
+        print("rot_outputs: ", rot_outputs)
+        print("lin_outputs: ", lin_outputs)
         delta_z = lin_outputs[0]
         # delta_z = 0.0
       

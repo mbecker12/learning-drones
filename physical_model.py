@@ -178,7 +178,7 @@ class QuadcopterPhysics:
         """
         self.Rot = rotation_matrix(roll, pitch, yaw)
 
-        print(f"pid_outputs: {pid_outputs}")
+        # print(f"pid_outputs: {pid_outputs}")
         desired_roll = pid_outputs[0] * VEC_ROLL
         desired_pitch = pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
