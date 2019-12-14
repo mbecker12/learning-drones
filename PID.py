@@ -111,3 +111,6 @@ class PID:
             output = self.outputLimitRange[1]
 
         return output
+
+    def set_setpoint(self, point):
+        self.setValue = point
