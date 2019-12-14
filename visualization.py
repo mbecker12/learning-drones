@@ -196,7 +196,7 @@ class Plotter:
         ax.axis([0, 4, 0, 101])
         return ax
 
-    def _setup_gridplot(self, grid, target: tuple, size: int) -> (plt.axes, plt.text, plt.path.PathCollection):
+    def _setup_gridplot(self, grid, target: tuple, size: int) -> (plt.axes, plt.text, None):
         ax = self.figure.add_subplot(grid[0:3, 2:4])
 
         major_ticks = np.arange(-size, size + 1, size/4)
@@ -228,7 +228,7 @@ class Plotter:
         x_ticks = np.arange(0, 1, 1)
         ax.set_xticks(x_ticks)
         ax.set_yticks(y_ticks)
-        ax.set_pointines['top'].set_visible(False)
+        ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.spines['bottom'].set_visible(False)
         ax.grid(which='major', alpha=1)
