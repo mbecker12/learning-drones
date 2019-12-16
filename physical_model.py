@@ -147,16 +147,18 @@ class QuadcopterPhysics:
         rot_acc = moments * self.inverse_inertia_vector
 
         if lin_acc_drone_2_lab:
-            lin_acc.dot(self.Rot.T)
+            lin_acc = np.dot(self.Rot.T, lin_acc)
+            rot_acc = np.dot(self.Rot.T, rot_acc)
 
         return lin_acc, rot_acc
 
     def calculate_motor_thrust(self, pid_outputs: np.ndarray, rotation: np.ndarray) -> np.ndarray:
         """
-        :param pid_outputs 6 rows 1 column
+        :param pid_outputs 6 rows 1 column (3 rotation, 3 linear)
         :param rotation [roll, pitch, yaw]
         :return: 4 rows 1 column
         """
+        print(f"pid_outputs: {pid_outputs}")
         self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
 
         desired_rotation = self.angle_control_to_thrust.dot(pid_outputs[:3])
@@ -204,6 +206,7 @@ class QuadcopterPhysics:
                                      roll: float, pitch: float, yaw: float,
                                      wind_speed: np.ndarray) -> (np.ndarray, np.ndarray):
         """
+        DEPRECATED
         name is pretty obvious don't you think?
         :param thrust: [[T_0], [T_1], [T_2], [T_3]]
         :param roll: rot around x
@@ -244,6 +247,7 @@ class QuadcopterPhysics:
                                 forces: np.ndarray,
                                 moments: np.ndarray) -> (np.ndarray, np.ndarray):
         """
+        DEPRECATED
         Convert the forces and momenta to useful linear and rotational
         acceleration, respectively.
         :param forces: calculated linear forces
@@ -269,6 +273,7 @@ class QuadcopterPhysics:
                        threshold: float = 0.0,
                        limit_range: list = [-1, 1]) -> np.ndarray:
         """
+        DEPRECATED
         From the PID outputs, calculate useful thrust levels for all
         four rotors.
         :param pid_outputs: outputs of three pid
