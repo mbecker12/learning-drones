@@ -118,6 +118,28 @@ class DataGenerator:
                 yield self.const + self.time * self.slope
 
 
+def get_positions_and_angles(sensors: list) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+    """
+    Wrapper function to integrate all coordinates in one function call.
+    :param sensors: list of 6 sensors, 3 linear sensors, 3 angular sensors (in that order)
+    :returns: lab position, lab velocity, drone angle, drone angular velocity
+    """
+    pos_x, vel_x = sensors[0].velocity_verlet()
+    pos_y, vel_y = sensors[1].velocity_verlet()
+    pos_z, vel_z = sensors[2].velocity_verlet()
+    roll, vroll = sensors[3].velocity_verlet()
+    pitch, vpitch = sensors[4].velocity_verlet()
+    yaw, vyaw = sensors[5].velocity_verlet()
+
+    lab_pos = np.array([[pos_x], [pos_y], [pos_z]])
+    lab_lin_vel = np.array([[vel_x], [vel_y], [vel_z]])
+
+    drone_angle = np.array([[roll], [pitch], [yaw]])
+    drone_angle_vel = np.array([[vroll], [vpitch], [vyaw]])
+
+    return lab_pos, lab_lin_vel, drone_angle, drone_angle_vel
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     plt_logger = logging.getLogger('matplotlib')

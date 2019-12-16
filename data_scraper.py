@@ -69,7 +69,7 @@ class DataHandler:
         self.rotation = np.zeros([1, 3], dtype=np.float32)
         self.translation = np.zeros([1, 3], dtype=np.float32)
         self.wind = np.zeros([1, 2], dtype=np.float32)
-        self.pid = np.zeros([1, 3], dtype=np.float32)
+        self.pid = np.zeros([1, 6], dtype=np.float32)
         self.setpoints = np.zeros([1, 6], dtype=np.float32)
 
     def new_data(self, time: float, rotation: np.ndarray, translation: np.ndarray, thrusters: np.ndarray,
@@ -86,39 +86,46 @@ class DataHandler:
         :return:
         """
 
-
         # check arguments
-        if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4):
+        if rotation.shape != (3, 1) or translation.shape != (3, 1) or thrusters.shape != (4, 1)\
+                or wind.shape != (3, 1) or pid.shape != (6, 1):
             logger.error("rotation.shape: " + str(rotation.shape))
             logger.error("translation.shape: " + str(translation.shape))
             logger.error("thrusters.shape: " + str(thrusters.shape))
+            logger.error("wind.shape: " + str(wind.shape))
+            logger.error("pid.shape: " + str(pid.shape))
             raise ValueError('One or more input values are not of the right size')
 
         # talk to visualization tool
 
         if self.visualize:
-            self._send_message(time=time, rotation=rotation, translation=translation, thrusters=thrusters, wind=wind)
+            self._send_message(time=time, rotation=rotation.T, translation=translation.T, thrusters=thrusters.T,
+                               wind=wind.T)
 
         # save data
         self.time = np.concatenate([self.time, np.array([[time]])], axis=0)
-        self.rotation = np.concatenate([self.rotation, rotation], axis=0)
-        self.translation = np.concatenate([self.translation, translation], axis=0)
-        self.thrusters = np.concatenate([self.thrusters, thrusters], axis=0)
-        self.wind = np.concatenate([self.wind, wind[0, :2][np.newaxis, :]], axis=0)
-        self.pid = np.concatenate([self.pid, pid], axis=0)
+        self.rotation = np.concatenate([self.rotation, rotation.T], axis=0)
+        self.translation = np.concatenate([self.translation, translation.T], axis=0)
+        self.thrusters = np.concatenate([self.thrusters, thrusters.T], axis=0)
+        self.wind = np.concatenate([self.wind, wind[:2].T], axis=0)
+        self.pid = np.concatenate([self.pid, pid.T], axis=0)
 
     def new_setpoints(self, rotation: np.ndarray, translation: np.ndarray):
-        message = "SETPOINTS roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(*rotation[0])
-        message += "x: {} y: {} z: {} ".format(*translation[0])
+        message = "SETPOINTS roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(*rotation.T[0])
+        print(f"translation: {translation}")
+        print(f"*translation.T[0]: {translation.T[0]}")
+        message += "x: {} y: {} z: {}\n".format(*translation.T[0])
         if self.printouts: print("[INFO] Message send: ", message)
-        for c in self.conn:
-            try:
-                c.sendall(message.encode())
-            except BrokenPipeError:
-                # if one connection fails save the progress and terminate
-                print("[ERROR] One connection has been disconnected! Saving and closing...")
-                self.finish()
-        setpoints = np.repeat(a=np.array([[*rotation, *translation]]), repeats=self.time.shape[0], axis=0)
+        if self.visualize:
+            for c in self.conn:
+                try:
+                    c.sendall(message.encode())
+                except BrokenPipeError:
+                    # if one connection fails save the progress and terminate
+                    print("[ERROR] One connection has been disconnected! Saving and closing...")
+                    self.finish()
+        trans_rot = np.concatenate([rotation.T, translation.T], axis=1)
+        setpoints = np.repeat(a=trans_rot, repeats=self.time.shape[0] - self.setpoints.shape[0], axis=0)
         self.setpoints = np.concatenate([self.setpoints, setpoints], axis=0)
 
 
@@ -139,7 +146,7 @@ class DataHandler:
         self.thrusters = self.thrusters[1:, :]
         self.wind = self.wind[1:, :]
         self.pid = self.pid[1:, :]
-
+        self.setpoints = self.setpoints[1:, :]
 
         # save data
         self._save_csv()
@@ -219,7 +226,7 @@ class DataHandler:
                                   self.thrusters, self.wind, self.pid, self.setpoints], axis=1)
         np.savetxt(self.dir_name + "Results.csv", results, delimiter=",",
                    header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, Wind X, Wind Y,'
-                          ' PID Roll, PID Pitch, PID Yaw, Set Roll, Set Pitch, Set Yaw, Set X, Set Y, Set Z')
+                          ' PID Roll, PID Pitch, PID Yaw, PID X, PID Y, PID Z, Set Roll, Set Pitch, Set Yaw, Set X, Set Y, Set Z')
 
         if self.printouts: print("[INFO] .csv saved")
 
@@ -235,9 +242,10 @@ if __name__ == "__main__":
         thrust = np.random.random([1, 4])
         w = np.random.randint(-10, 10, [1, 3])
 
-        dh.new_data(time=t, rotation=rot,
-                    translation=trans,
-                    thrusters=thrust, wind=w, pid=np.array([[0.5, 0.8, 20]]))
+        dh.new_data(time=t, rotation=rot.T,
+                    translation=trans.T,
+                    thrusters=thrust.T, wind=w.T, pid=np.array([[0.5, 0.8, 20, 0, 0, 0]]).T)
         tm.sleep(0.1)
+        dh.new_setpoints(translation=trans.T, rotation=rot.T)
 
     dh.finish()

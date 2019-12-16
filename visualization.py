@@ -7,6 +7,7 @@ Marvin Becker
 
 TODO: play from file option
 TODO: split in 2 figures
+TODO: relative position of wind_text, relative arrow size
 
 Python 3.6.5 and 3.6.7
 Library version:
@@ -159,7 +160,7 @@ class Plotter:
             # 8.436974647712704 t_1: 0.0 t_2: 0.0 t_3: 0.0 t_4: 0.0 w_x: 1.0 w_y: 0.0 w_z: 0.0\n"
             # received = "SETPOINTS roll: 90 pitch: 40 yaw: -30 x: 20 y: -30 z: 50\n"
             received =  data.decode()
-            # if printouts: print("[INFO] Message received: ", received)
+            if printouts: print("[INFO] Message received: ", received)
             if 'quit' in received:
                 self.socket.close()
                 print("[INFO] Socket got closed")
@@ -336,7 +337,6 @@ class Plotter:
             if self.printouts: print("[INFO] Connected")
 
     def _decode_message(self, message: str):
-        # if self.printouts: print("message: " + message)
         msg = message.split("\n")[-2]
         meaning = msg.split(" ")
         if self.printouts: print("[INFO] Latest Message: " + msg)
