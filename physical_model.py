@@ -72,9 +72,9 @@ def translational_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     :return: translational matrix
     """
 
-    T = np.array([[1, np.sin(roll) * np.tan(pitch), np.cos(roll) * np.tan(pitch)],
-                  [0, np.cos(roll)               , -np.sin(roll)],
-                  [0, np.sin(roll) / np.cos(pitch), np.cos(roll) / np.cos(pitch)]], dtype=np.float32)
+    T = np.array([[1, np.sin(roll) * np.tan(pitch),  np.cos(roll) * np.tan(pitch)],
+                  [0, np.cos(roll)                , -np.sin(roll)],
+                  [0, np.sin(roll) / np.cos(pitch),  np.cos(roll) / np.cos(pitch)]], dtype=np.float32)
 
     return T
 
@@ -84,7 +84,7 @@ class QuadcopterPhysics:
     Class to calculate the forces and moments of the quadcopter based on the physical parameters
     Simplifications: - Direct control of motor thrust
                      - Direct resulting moment of motor thrust
-                     - wind only from positive y-direction to negative y-direction
+                     - wind only in x_y_plane
     """
     def __init__(self, mass_center: float, mass_motor: float,
                  radius_motor_center: float, I_x: float, I_y: float, I_z: float,
