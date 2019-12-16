@@ -287,7 +287,7 @@ class QuadcopterPhysics:
 
         desired_pitch = delta_x * 0.5 * VEC_PITCH
         desired_roll = 0.0
-        
+
         desired_roll += pid_outputs[0] * VEC_ROLL
         desired_pitch += pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW

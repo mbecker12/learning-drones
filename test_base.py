@@ -31,7 +31,6 @@ if __name__ == "__main__":
         n_servers = 2
 
     # initialize drone, choose starting position
-
     initial_thrust = np.array([[0, 0, 0, 0]]).T
     initial_wind_speed = np.array([[0.0, 0.0, 0.0]]).T
     initial_angle = np.array([[0, 30, 0]]).T * np.pi / 180
@@ -48,6 +47,7 @@ if __name__ == "__main__":
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t, initial_pos[i, 0], initial_vel[i, 0]) for i in range(3)]
     sensors.extend([Sensor(delta_t, initial_angle[i, 0], initial_angle_vel[i, 0]) for i in range(3)])
+
     rot_pids = [
         PID(kp=1., ki=0.0, kd=0.1, timeStep=delta_t, setValue=0 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
         PID(kp=1., ki=0.0, kd=0.1, timeStep=delta_t, setValue=0 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     drone_angle = initial_angle
     drone_angle_vel = initial_angle_vel
     thrust = initial_thrust
-
+    
     forces, moments = quadcopter.calculate_forces_and_moments(
             thrust=initial_thrust,
             roll=initial_angle[0, 0],
@@ -103,6 +103,7 @@ if __name__ == "__main__":
 
         if changed_setpoint:
             dh.new_setpoints(np.array([[sp_roll, sp, 0]]).T, np.array([[x_target, y_target, z_target]]).T)
+            
         try:
             sleep(0.05)
         except KeyboardInterrupt:
@@ -129,13 +130,13 @@ if __name__ == "__main__":
 
         rot_inputs = drone_angle
         rot_outputs = [pid.calculate(rot_inputs[i, 0]) for i, pid in enumerate(rot_pids)]
-
         lin_inputs = lab_pos
         lin_outputs = [pid.calculate(lin_inputs[i, 0]) for i, pid in enumerate(lin_pids)]
         print("rot_outputs: ", rot_outputs)
         print("lin_outputs: ", lin_outputs)
         delta_x = lin_outputs[0]
         delta_z = lin_outputs[2]
+
         # thrust = quadcopter.calculate_motor_thrust(np.concatenate([[rot_outputs], [lin_outputs]], axis=1).T, drone_angle)
         thrust = quadcopter.control_thrust(
             rot_outputs, drone_angle[0, 0], drone_angle[1, 0], drone_angle[2, 0], delta_z, delta_x=delta_x)
