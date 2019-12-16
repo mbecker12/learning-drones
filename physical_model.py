@@ -187,11 +187,11 @@ class QuadcopterPhysics:
         """
         self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
         x_w = self.Rot[:, 0]
-        x_w[2] = 0
-        x_axes = np.array([1, 0, 0])
+        p = x_w[:2]
+        x_axes = np.array([1, 0])
 
-        first = np.linalg.norm(np.cross(x_w, x_axes))
-        second = x_w.dot(x_axes)
+        first = np.linalg.norm(np.cross(p, x_axes))
+        second = p.dot(x_axes)
         yaw_world = np.arctan2(first, second)
 
         x_y_changed = rotation_matrix_2d(yaw_world).dot(pid_outputs[3:5])
@@ -319,7 +319,7 @@ if __name__ == "__main__":
                            coef_force=coef_force, coef_moment=coef_moment, coef_wind=coef_wind,
                            gravity=gravity, mass_payload=mass_payload, x_payload=x_payload, y_payload=y_payload)
     t = np.array([[0.1, 0.1, 0.1, 0.1]])
-    roll, pitch, yaw = 3.14159/4, 0.0, 3.14159/2
+    roll, pitch, yaw = 45 * 3.14159/180, 30 * 3.14159/180, 45 * 3.14159/180
     wind = np.array([[0, 0, 0]])
     # print(qc.calculate_accelerations(rotation=np.array([[roll, pitch, yaw]]).T, wind_speed=wind.T, thrust=t.T, lin_acc_drone_2_lab=False))
     f, m = qc.calculate_forces_and_moments(thrust=t, roll=roll, pitch=pitch, yaw=yaw, wind_speed=wind)
@@ -327,10 +327,11 @@ if __name__ == "__main__":
     # print(f)
     # print(m)
 
-    pid = np.array([[0.0, 0.0, 0.0, 0.5, 0.0, -0.2]], dtype=np.float32).T
+    pid = np.array([[0.0, 0.0, 0.0, 1, 0.0, -0.2]], dtype=np.float32).T
     t = qc.calculate_motor_thrust(rotation=np.array([[roll, pitch, yaw]]).T, pid_outputs=pid)
     # print(t)
     t = qc.control_thrust(roll=roll, pitch=pitch, yaw=yaw, pid_outputs=pid[:3], delta_z=pid[5, 0])
     # print(t)
 
-    print(qc.translate_rotation_to_global(rotation=np.array([[roll, pitch, yaw]]).T, pid_outputs=pid))
+    angle, pid_new = qc.translate_rotation_to_global(rotation=np.array([[roll, pitch, yaw]]).T, pid_outputs=pid)
+    print("angle: {:.2f}, x: {:.2f}, y: {:.2f}".format(angle*180/3.14159, pid_new[3, 0], pid_new[4, 0]))
