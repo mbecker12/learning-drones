@@ -42,15 +42,15 @@ if __name__ == "__main__":
     initial_wind_speed = np.array([[0.0, 0.0, 0.0]])
     # initialize deterministically
     initial_roll = 0 * np.pi / 180
-    initial_pitch = 0 * np.pi / 180
+    initial_pitch = 30 * np.pi / 180
     initial_yaw = 0 * np.pi / 180
     initial_vroll = 0.0
     initial_vpitch = 0.0
     initial_vyaw = 0.0
     initial_wind_speed = np.array([[0.0, 0.0, 0.0]])
 
-    initial_x = 10.0
-    initial_y = 10.0
+    initial_x = 0.0
+    initial_y = 0.0
     initial_z = 10.0
     initial_vx = 0.0
     initial_vy = 0.0
@@ -128,9 +128,18 @@ if __name__ == "__main__":
         sp = 0.52 - time * 0.01
         sp = np.sin(time * np.pi * 0.01) * 0.5
         sp = 30 * np.pi / 180
-        rot_pids[1].set_setpoint(sp)# if sp > 0 else 0)
+        rot_pids[1].set_setpoint(sp)
+        # if time < 100:
+        #     rot_pids[0].set_setpoint(00 * np.pi / 180)
+        #     rot_pids[1].set_setpoint(30 * np.pi / 180)
+        # if time > 100:
+        #     rot_pids[0].set_setpoint(0 * np.pi / 180)
+        #     rot_pids[1].set_setpoint(-30 * np.pi / 180)
+        # if time > 300:
+        #     rot_pids[0].set_setpoint(00 * np.pi / 180)
+        #     rot_pids[1].set_setpoint(00 * np.pi / 180)
         try:
-            sleep(0.2)
+            sleep(0.05)
         except KeyboardInterrupt:
             dh.finish()
 

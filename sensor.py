@@ -4,7 +4,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-
+# TODO: Rewrite Sensor class based on updated physical model 
 class Sensor:
     """
     Very Simple Sensor class, able to:
