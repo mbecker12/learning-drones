@@ -57,7 +57,7 @@ class Plotter:
         self.wind = np.zeros([n_last_states, 2], dtype=np.float32)
 
         # setup socket
-        # self._open_socket(host, port)
+        self._open_socket(host, port)
 
         # plot setup
         if self.printouts: print("[INFO] Setting up plots")
@@ -155,11 +155,11 @@ class Plotter:
 
     def loop(self, *args):
         try:
-            # data = self.socket.recv(1024)
-            received = "time: 60.01 roll: 0.5236 pitch: 0.0000 yaw: 0.0000 x: 10.0 y: 9.13156979727745 z: " \
-                       "8.436974647712704 t_1: 0.0 t_2: 0.0 t_3: 0.0 t_4: 0.0 w_x: 1.0 w_y: 0.0 w_z: 0.0 y_w: 0.5236\n"
+            data = self.socket.recv(1024)
+            # received = "time: 60.01 roll: 0.5236 pitch: 0.0000 yaw: 0.0000 x: 10.0 y: 9.13156979727745 z: " \
+            #            "8.436974647712704 t_1: 0.0 t_2: 0.0 t_3: 0.0 t_4: 0.0 w_x: 1.0 w_y: 0.0 w_z: 0.0 y_w: 0.5236\n"
             # received = "SETPOINTS roll: 90 pitch: 40 yaw: -30 x: 20 y: -30 z: 50\n"
-            # received = data.decode()
+            received = data.decode()
             if printouts: print("[INFO] Message received: ", received)
             if 'quit' in received:
                 self.socket.close()
