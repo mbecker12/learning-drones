@@ -29,6 +29,7 @@ from datetime import datetime
 import os
 import sys
 
+
 import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ class DataHandler:
 
     def new_data(self, time: float, rotation: np.ndarray, translation: np.ndarray, thrusters: np.ndarray,
                  wind: np.ndarray, pid: np.ndarray):
+
         """
         Create a new set of data points and visualize them
         :param time:
@@ -83,6 +85,7 @@ class DataHandler:
         :param pid: [c_roll, c_pitch, c_yaw]
         :return:
         """
+
 
         # check arguments
         if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4)\
@@ -121,6 +124,7 @@ class DataHandler:
         setpoints = np.repeat(a=np.array([[*rotation, *translation]]), repeats=self.time.shape[0], axis=0)
         self.setpoints = np.concatenate([self.setpoints, setpoints], axis=0)
 
+
     def finish(self):
         """
         Close sockets and save data to files
@@ -138,6 +142,7 @@ class DataHandler:
         self.thrusters = self.thrusters[1:, :]
         self.wind = self.wind[1:, :]
         self.pid = self.pid[1:, :]
+
 
         # save data
         self._save_csv()
@@ -166,6 +171,7 @@ class DataHandler:
                       thrusters: np.ndarray, wind: np.ndarray):
         message = "time: {} ".format(time)
         message += "roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(*rotation[0])
+
         message += "x: {} y: {} z: {} ".format(*translation[0])
         message += "t_1: {} t_2: {} t_3: {} t_4: {} ".format(*thrusters[0])
         message += "w_x: {} w_y: {} w_z: {}\n".format(*wind[0])
@@ -176,12 +182,14 @@ class DataHandler:
             except BrokenPipeError:
                 # if one connection fails save the progress and terminate
                 print("[ERROR] One connection has been disconnected! Saving and closing...")
+
                 self.finish()
 
     def _close_socket(self):
         for i in range(len(self.conn)):
             try:
                 print(i)
+
                 self.conn[i].sendall("quit".encode())
                 self.conn[i].close()
             except BrokenPipeError:
@@ -215,6 +223,7 @@ class DataHandler:
         np.savetxt(self.dir_name + "Results.csv", results, delimiter=",",
                    header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, Wind X, Wind Y,'
                           ' PID Roll, PID Pitch, PID Yaw, Set Roll, Set Pitch, Set Yaw, Set X, Set Y, Set Z')
+
         if self.printouts: print("[INFO] .csv saved")
 
 

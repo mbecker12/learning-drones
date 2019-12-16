@@ -56,6 +56,7 @@ class Plotter:
         self.translation = np.zeros([n_last_states, 3], dtype=np.float32)
         self.wind = np.zeros([n_last_states, 2], dtype=np.float32)
 
+
         # setup socket
         self._open_socket(host, port)
 
@@ -125,6 +126,8 @@ class Plotter:
             dxy = (20, 0)
             self.wind_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='y', head_width=6, width=2,
                                                            head_starts_at_zero=True)
+            # TODO: fix arrow direction
+            # points in y-direction at the moment
             self.direction_arrow_handle = self.plane_plot.arrow(0, 0, 1, 0, color='g', head_width=4, width=2,
                                                                 head_starts_at_zero=True)
             self.position_handle = self.plane_plot.scatter(0, 0, c='g')
