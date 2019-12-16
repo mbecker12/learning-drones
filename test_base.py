@@ -31,46 +31,20 @@ if __name__ == "__main__":
         n_servers = 2
 
     # initialize drone, choose starting position
+
     initial_thrust = np.array([[0, 0, 0, 0]])
-    # initialize randomly
-    initial_roll = np.random.rand() * 2 - 1
-    initial_pitch = np.random.rand() * 2 - 1
-    initial_yaw = np.random.rand() * 2 - 1
-    initial_vroll = np.random.rand() * 2 - 1
-    initial_vpitch = np.random.rand() * 2 - 1
-    initial_vyaw = np.random.rand() * 2 - 1
     initial_wind_speed = np.array([[0.0, 0.0, 0.0]])
-    # initialize deterministically
-    initial_roll = 0 * np.pi / 180
-    initial_pitch = 30 * np.pi / 180
-    initial_yaw = 0 * np.pi / 180
-    initial_vroll = 0.0
-    initial_vpitch = 0.0
-    initial_vyaw = 0.0
-    initial_wind_speed = np.array([[0.0, 0.0, 0.0]])
-
-    initial_x = 0.0
-    initial_y = 0.0
-    initial_z = 10.0
-    initial_vx = 0.0
-    initial_vy = 0.0
-    initial_vz = 0.0
+    initial_angle = np.array([[0, 30, 0]]) * np.pi / 180
+    initial_angle_vel = np.array([[0, 0, 0]])
+    initial_pos = np.array([[0.0, 0.0, 10.0]])
+    initial_vel = np.array([[0.0, 0.0, 0.0]])
     delta_t = 0.01
+    timesteps = 5000
 
-    roll_thrust = np.array([[1, 0, 0, 1]], dtype=np.float32)
-    pitch_thrust = np.array([[1, 1, 0, 0]], dtype=np.float32)
-    yaw_thrust = np.array([[1, 0, 1, 0]], dtype=np.float32)
-    thrust_dict = {
-        'roll': roll_thrust,
-        'pitch': pitch_thrust,
-        'yaw': yaw_thrust
-    }
-
-    timesteps = 1000
-    
     # Initialize Drone Hardware
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
-    sensors = [Sensor(delta_t) for _ in range(6)]
+    sensors = [Sensor(delta_t, initial_pos[0, i], initial_vel[0, i]) for i in range(3)]
+    sensors.extend([Sensor(delta_t, initial_angle[0, i], initial_angle_vel[0, i]) for i in range(3)])
     rot_pids = [
         PID(kp=1., ki=0.0, kd=0.1, timeStep=delta_t, setValue=0 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
         PID(kp=1., ki=0.0, kd=0.1, timeStep=delta_t, setValue=0 * np.pi / 180, integralRange=2, calculateFlag="rangeExit"),
@@ -78,6 +52,8 @@ if __name__ == "__main__":
     ]
 
     lin_pids = [
+        PID(kp=1.0, ki=0.0, kd=0.9, timeStep=delta_t, setValue=25, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1.5, ki=0.0, kd=0.3, timeStep=delta_t, setValue=10, integralRange=2, calculateFlag="rangeExit"),
         PID(kp=1.5, ki=0.0, kd=0.3, timeStep=delta_t, setValue=10, integralRange=2, calculateFlag="rangeExit")
     ]
     
@@ -96,48 +72,47 @@ if __name__ == "__main__":
 
     # Initialize Values
     previous_wind_speed = initial_wind_speed
-    previous_x = initial_x
-    previous_y = initial_y
-    previous_z = initial_z
-    previous_vx = initial_vx
-    previous_vy = initial_vy
-    previous_vz = initial_vz
-    lab_pos = np.array([[previous_x], [previous_y], [previous_z]])
-    lab_lin_vel = np.array([[previous_vx], [previous_vy], [previous_vz]])
-
-
-    previous_roll = initial_roll
-    previous_pitch = initial_pitch
-    previous_yaw = initial_yaw
-    previous_vroll = initial_vroll
-    previous_vpitch = initial_vpitch
-    previous_vyaw = initial_vyaw
-    previous_thrust = initial_thrust
+    lab_pos = initial_pos.T
+    lab_lin_vel = initial_vel.T
+    drone_angle = initial_angle.T
+    drone_angle_vel = initial_angle_vel.T
 
     forces, moments = quadcopter.calculate_forces_and_moments(
-            thrust=previous_thrust,
-            roll=previous_roll,
-            pitch=previous_pitch,
-            yaw=previous_yaw,
+            thrust=initial_thrust,
+            roll=initial_angle[0, 0],
+            pitch=initial_angle[0, 1],
+            yaw=initial_angle[0, 2],
             wind_speed=previous_wind_speed)
 
     # force changes
     for time in range(timesteps):
         real_time = time * delta_t
-
-        sp = 0.52 - time * 0.01
-        sp = np.sin(time * np.pi * 0.01) * 0.5
-        sp = 30 * np.pi / 180
-        rot_pids[1].set_setpoint(sp)
-        # if time < 100:
-        #     rot_pids[0].set_setpoint(00 * np.pi / 180)
-        #     rot_pids[1].set_setpoint(30 * np.pi / 180)
-        # if time > 100:
-        #     rot_pids[0].set_setpoint(0 * np.pi / 180)
-        #     rot_pids[1].set_setpoint(-30 * np.pi / 180)
-        # if time > 300:
-        #     rot_pids[0].set_setpoint(00 * np.pi / 180)
-        #     rot_pids[1].set_setpoint(00 * np.pi / 180)
+        # sp_roll = 0
+        # sp = 00 * np.pi / 180
+        # if time < 20:
+        #     sp = 30 * np.pi / 180
+        # if 20 < time < 120:
+        #     sp -= 5 * np.pi / 180
+        # if 120 < time < 150:
+        #     sp = 0
+        # if 150 < time < 250:
+        #     sp = -45 * np.pi / 180
+        # if 250 < time < 300:
+        #     sp = 0
+        # if 300 < time < 350:
+        #     sp_roll = 45 * np.pi / 180
+        #     rot_pids[0].set_setpoint(sp_roll)
+        # if 350 < time < 450:
+        #     sp_roll = 10 * np.pi / 180
+        #     rot_pids[0].set_setpoint(10 * np.pi / 180)
+        # if 450 < time < 550:
+        #     sp_roll = 0
+        #     rot_pids[0].set_setpoint(sp_roll)
+        #     sp = -60 * np.pi / 180
+        # if 550 < time:
+        #     sp = -10 * np.pi / 180
+        # rot_pids[1].set_setpoint(sp)
+        # dh.new_setpoints(np.array([[sp_roll, sp, 0]]), np.array([[0, 0, 10]]))
         try:
             sleep(0.05)
         except KeyboardInterrupt:
@@ -149,30 +124,26 @@ if __name__ == "__main__":
         # handle accelerations:
         lab_lin_acc = np.dot(quadcopter.Rot.T, drone_lin_acc)
         print(f"lab_lin_acc: {lab_lin_acc}")
-        Tr = translational_matrix(previous_roll, previous_pitch, previous_yaw)
+        Tr = translational_matrix(drone_angle[0, 0], drone_angle[1, 0], drone_angle[2, 0])
         lab_rot_acc = np.dot(Tr, drone_rot_acc)
-
-        # measurement in drone frame
-        # [sensors[i].measure_acceleration(drone_lin_acc[i, 0]) for i in range(3)]
-        # [sensors[i].measure_acceleration(drone_rot_acc[i-3, 0]) for i in range(3, 6)]
 
         # measurement in lab frame
         [sensors[i].measure_acceleration(lab_lin_acc[i, 0]) for i in range(3)]
         [sensors[i].measure_acceleration(lab_rot_acc[i-3, 0]) for i in range(3, 6)]
 
         # now, everything should be returned in lab coordinates
-        pos_x, vel_x = sensors[0].velocity_verlet(previous_x, previous_vx)
-        pos_y, vel_y = sensors[1].velocity_verlet(previous_y, previous_vy)
-        pos_z, vel_z = sensors[2].velocity_verlet(previous_z, previous_vz)
-        roll, vroll = sensors[3].velocity_verlet(previous_roll, previous_vroll)
-        pitch, vpitch = sensors[4].velocity_verlet(previous_pitch, previous_vpitch)
-        yaw, vyaw = sensors[5].velocity_verlet(previous_yaw, previous_vyaw)
+        pos_x, vel_x = sensors[0].velocity_verlet()
+        pos_y, vel_y = sensors[1].velocity_verlet()
+        pos_z, vel_z = sensors[2].velocity_verlet()
+        roll, vroll = sensors[3].velocity_verlet()
+        pitch, vpitch = sensors[4].velocity_verlet()
+        yaw, vyaw = sensors[5].velocity_verlet()
 
         lab_pos = np.array([[pos_x], [pos_y], [pos_z]])
         lab_lin_vel = np.array([[vel_x], [vel_y], [vel_z]])
-        # drone_pos = np.array([[pos_x], [pos_y], [pos_z]])
-        # drone_lin_vel = np.array([[vel_x], [vel_y], [vel_z]])
-        # drone_rot_vel = np.array([[vroll], [vpitch], [vyaw]])
+        
+        drone_angle = np.array([[roll], [pitch], [yaw]])
+        drone_angle_vel = np.array([[vroll], [vpitch], [vyaw]])
 
         # lab_lin_vel = np.dot(quadcopter.Rot.T, drone_lin_vel)
         # lab_rot_vel = np.dot(Tr, drone_rot_vel)
@@ -186,46 +157,29 @@ if __name__ == "__main__":
         rot_inputs = np.array([roll, pitch, yaw])
         rot_outputs = [pid.calculate(rot_inputs[i]) for i, pid in enumerate(rot_pids)]
 
-        lin_inputs = np.array([lab_pos[2, 0]])
+        lin_inputs = np.array([lab_pos[0, 0], lab_pos[1, 0], lab_pos[2, 0]])
         lin_outputs = [pid.calculate(lin_inputs[i]) for i, pid in enumerate(lin_pids)]
         print("rot_outputs: ", rot_outputs)
         print("lin_outputs: ", lin_outputs)
-        delta_z = lin_outputs[0]
-        thrust = quadcopter.control_thrust(rot_outputs, roll, pitch, yaw, delta_z)
+        delta_x = lin_outputs[0]
+        delta_z = lin_outputs[2]
+        thrust = quadcopter.control_thrust(rot_outputs, roll, pitch, yaw, delta_z, delta_x=delta_x)
 
         print(pos_z)
-        
-
-        # Update Values
-        
-        previous_x = lab_pos[0, 0]
-        previous_y = lab_pos[1, 0]
-        previous_z = lab_pos[2, 0]
-        previous_vx = lab_lin_vel[0, 0]
-        previous_vy = lab_lin_vel[1, 0]
-        previous_vz = lab_lin_vel[2, 0]
-        previous_roll = roll
-        previous_pitch = pitch
-        previous_yaw = yaw
-        previous_vroll = vroll
-        previous_vpitch = vpitch
-        previous_vyaw = vyaw
-        previous_thrust = thrust
 
         dh.new_data(
             time=time + delta_t,
             rotation=np.array([[roll, pitch, yaw]]),
             translation=np.array([[lab_pos[0, 0], lab_pos[1, 0], lab_pos[2, 0]]]),
-            thrusters=previous_thrust,
+            thrusters=thrust,
             wind=previous_wind_speed,
             pid=np.array([[*rot_outputs]]))
 
-
         forces, moments = quadcopter.calculate_forces_and_moments(
-            thrust=previous_thrust,
-            roll=previous_roll,
-            pitch=previous_pitch,
-            yaw=previous_yaw,
+            thrust=thrust,
+            roll=drone_angle[0, 0],
+            pitch=drone_angle[1, 0],
+            yaw=drone_angle[2, 0],
             wind_speed=previous_wind_speed)
 
     dh.finish()

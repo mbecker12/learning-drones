@@ -164,6 +164,7 @@ class QuadcopterPhysics:
                        pitch: float,
                        yaw: float,
                        delta_z: float,
+                       delta_x: float = 0.0,
                        threshold: float = 0.0,
                        limit_range: list = [-1, 1]) -> np.ndarray:
         """
@@ -178,9 +179,14 @@ class QuadcopterPhysics:
         """
         self.Rot = rotation_matrix(roll, pitch, yaw)
 
-        # print(f"pid_outputs: {pid_outputs}")
-        desired_roll = pid_outputs[0] * VEC_ROLL
-        desired_pitch = pid_outputs[1] * VEC_PITCH
+        # desired translation
+        # delta_x = 0.0
+        desired_roll = 0.0
+        desired_pitch = delta_x * 0.5 * VEC_PITCH
+
+        # desired rotation
+        desired_roll += pid_outputs[0] * VEC_ROLL
+        desired_pitch += pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
         # print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")
         base_thrust = self.G / (4 * self.c_f) + delta_z

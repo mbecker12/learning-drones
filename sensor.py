@@ -20,10 +20,18 @@ class Sensor:
     sensors (e.g. accelerometers), for instance: do they have
     memory of the last couple of acceleration values?
     """
-    def __init__(self, delta_t):
+    def __init__(self, delta_t, previous_pos, previous_vel):
         self.current_acceleration = 0.0
         self.last_acceleration = 0.0
+        self.previous_pos = previous_pos
+        self.previous_vel = previous_vel
         self.delta_t = delta_t
+
+    def set_position(self, position):
+        self.previous_pos = position
+
+    def set_velocity(self, velocity):
+        self.previous_vel = velocity
 
     def return_acceleration(self):
         return self.current_acceleration
@@ -54,15 +62,25 @@ class Sensor:
         delta_v = 0.5 * (self.last_acceleration + self.current_acceleration) * self.delta_t
         return delta_v
 
-    def get_current_x_and_v(self, previous_position, previous_velocity):
-        velocity = previous_velocity + self.naive_get_delta_v()
-        position = previous_position + self.naive_get_delta_x(velocity)
-        return position, velocity
+    def get_current_x_and_v(self, return_vel=False):
+        velocity = self.previous_vel + self.naive_get_delta_v()
+        position = self.previous_pos + self.naive_get_delta_x(velocity)
+        self.previous_pos = position
+        self.previous_vel = velocity
+        if not return_vel:
+            return position
+        else:
+            return position, velocity
 
-    def velocity_verlet(self, previous_position, previous_velocity):
-        position = previous_position + self.verlet_get_delta_x(previous_velocity)
-        velocity = previous_velocity + self.verlet_get_delta_v()
-        return position, velocity
+    def velocity_verlet(self, return_vel=True):
+        position = self.previous_pos + self.verlet_get_delta_x(self.previous_vel)
+        velocity = self.previous_vel + self.verlet_get_delta_v()
+        self.previous_pos = position
+        self.previous_vel = velocity
+        if not return_vel:
+            return position
+        else:
+            return position, velocity
 
 
 class DataGenerator:

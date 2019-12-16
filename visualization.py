@@ -120,7 +120,7 @@ class Plotter:
 
             # init gridplot with the arrows and plots on top
             self.plane_plot, self.wind_text, self.setpoint_xy = self._setup_gridplot(grid=grid, target=(90, 80),
-                                                                                     size=100)
+                                                                                     size=50)
             xy = (60, -75)
             dxy = (20, 0)
             self.wind_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='y', head_width=6, width=2,
@@ -307,7 +307,12 @@ class Plotter:
         self.setpoint_xy.set_offsets(info[4])
 
     def _arrow_position(self):
-        wind = 1 / np.linalg.norm(self.wind[-1, :]) * self.wind[-1, :]
+        try:
+            wind = 1 / np.linalg.norm(self.wind[-1, :]) * self.wind[-1, :]
+        except ZeroDivisionError as err:
+            wind = 0.0
+
+
         xy = (self.arrow_center - wind * self.arrow_length / 2 * 1.6)
         dxy = (self.arrow_center + wind * self.arrow_length / 2 * 0.2) - xy
         return xy, dxy
@@ -347,7 +352,7 @@ class Plotter:
                               np.array([[wind_x, wind_y]]))
             except ValueError:
                 if self.printouts: print("[ERROR] Couldn't decode message")
-                return 0, ((0, 0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0))
+                return True, (0, (0, 0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0))
 
     # OTHER
     def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float):
