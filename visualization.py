@@ -55,6 +55,7 @@ class Plotter:
         self.translation = np.zeros([n_last_states, 3], dtype=np.float32)
         self.wind = np.zeros([n_last_states, 2], dtype=np.float32)
 
+
         # setup socket
         self._open_socket(host, port)
 

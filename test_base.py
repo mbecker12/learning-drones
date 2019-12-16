@@ -211,6 +211,7 @@ if __name__ == "__main__":
             wind=previous_wind_speed,
             pid=np.array([[*rot_outputs]]))
 
+
         forces, moments = quadcopter.calculate_forces_and_moments(
             thrust=previous_thrust,
             roll=previous_roll,

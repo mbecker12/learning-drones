@@ -31,7 +31,6 @@ class PID:
         The derivative part at the first time of calculate call is 0.
         :param controlValue: PV
         """
-
         error = self.setValue - controlValue
         self.accumulate_error(error)
 
@@ -50,6 +49,7 @@ class PID:
 
         output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
         self.previousControlVal = controlValue
+
         return self.check_output(output)
 
     def calculate_error_sign(self, controlValue):
@@ -77,7 +77,7 @@ class PID:
         if error != 0:
             self.previousError = error
 
-        return output
+        return self.check_output(output)
 
     def calculate_range_exit(self, controlValue):
         """
@@ -104,7 +104,6 @@ class PID:
             self.integralError += error
 
     def check_output(self, output):
-
         if output < self.outputLimitRange[0]:
             output = self.outputLimitRange[0]
         elif output > self.outputLimitRange[1]:
