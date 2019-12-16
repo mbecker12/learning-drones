@@ -7,6 +7,7 @@ Marvin Becker
 
 TODO: play from file option
 TODO: split in 2 figures
+TODO: relative position of wind_text, relative arrow size
 
 Python 3.6.5 and 3.6.7
 Library version:
@@ -343,7 +344,7 @@ class Plotter:
                               np.array([[wind_x, wind_y]]))
             except ValueError:
                 if self.printouts: print("[ERROR] Couldn't decode message")
-                return 0, ((0, 0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0))
+                return True, (0, (0, 0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0))
 
     # OTHER
     def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float):
