@@ -112,8 +112,6 @@ class DataHandler:
 
     def new_setpoints(self, rotation: np.ndarray, translation: np.ndarray):
         message = "SETPOINTS roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(*rotation.T[0])
-        print(f"translation: {translation}")
-        print(f"*translation.T[0]: {translation.T[0]}")
         message += "x: {} y: {} z: {}\n".format(*translation.T[0])
         if self.printouts: print("[INFO] Message send: ", message)
         if self.visualize:
