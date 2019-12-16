@@ -82,6 +82,8 @@ class DroneHandle:
 
     def _decode_message(self, message: str):
         meaning = message.split(" ")
+        if meaning[0] == "SETPOINTS":
+            return self.roll, self.pitch, self.yaw
         try:
             time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
                 [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
@@ -108,7 +110,7 @@ ren = vtk.vtkRenderer()
 ren.SetBackground(0.0, 0.0, 0.0)
 
 renWin = vtk.vtkRenderWindow()
-renWin.SetSize(1600, 1600)
+renWin.SetSize(750, 750)
 # renWin.SetWindowName("Please give me my drone!")
 renWin.AddRenderer(ren)
 
