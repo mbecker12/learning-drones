@@ -7,7 +7,6 @@ Marvin Becker
 
 TODO: play from file option
 TODO: split in 2 figures
-TODO: relative position of wind_text, relative arrow size
 
 Python 3.6.5 and 3.6.7
 Library version:
@@ -51,13 +50,14 @@ class Plotter:
         self.plots = {}
 
         # data storage
+        self.yaw_world = 0
         self.plotting_assistant = np.arange(n_last_states)
         self.rotation = np.zeros([n_last_states, 3], dtype=np.float32)
         self.translation = np.zeros([n_last_states, 3], dtype=np.float32)
         self.wind = np.zeros([n_last_states, 2], dtype=np.float32)
 
         # setup socket
-        self._open_socket(host, port)
+        # self._open_socket(host, port)
 
         # plot setup
         if self.printouts: print("[INFO] Setting up plots")
@@ -155,11 +155,11 @@ class Plotter:
 
     def loop(self, *args):
         try:
-            data = self.socket.recv(1024)
-            # received = "time: 60.01 roll: 0.5236 pitch: 0.0000 yaw: 0.0000 x: 10.0 y: 9.13156979727745 z: " \
-            #            "8.436974647712704 t_1: 0.0 t_2: 0.0 t_3: 0.0 t_4: 0.0 w_x: 1.0 w_y: 0.0 w_z: 0.0\n"
+            # data = self.socket.recv(1024)
+            received = "time: 60.01 roll: 0.5236 pitch: 0.0000 yaw: 0.0000 x: 10.0 y: 9.13156979727745 z: " \
+                       "8.436974647712704 t_1: 0.0 t_2: 0.0 t_3: 0.0 t_4: 0.0 w_x: 1.0 w_y: 0.0 w_z: 0.0 y_w: 0.5236\n"
             # received = "SETPOINTS roll: 90 pitch: 40 yaw: -30 x: 20 y: -30 z: 50\n"
-            received = data.decode()
+            # received = data.decode()
             if printouts: print("[INFO] Message received: ", received)
             if 'quit' in received:
                 self.socket.close()
@@ -170,10 +170,9 @@ class Plotter:
                 print("MSG TYPE: ", message_type)
                 print("INFO : ", info)
                 if message_type:
-                    time, rot, trans, thrusters, wind = info
+                    time, rot, trans, thrusters, wind, yaw_world = info
+                    self._store_new_data(rotation=rot, translation=trans, wind=wind, yaw=yaw_world)
                     self._update_plots(time=time, thrusters=thrusters)
-                    self._store_new_data(rotation=rot,
-                                         translation=trans, wind=wind)
                 else:
                     self._setpoints(info)
 
@@ -289,7 +288,7 @@ class Plotter:
         # set position
         self.direction_arrow_handle.remove()
         xy = (self.translation[-1, 0], self.translation[-1, 1])
-        dxy = (np.sin(self.rotation[-1, 2]) * self.arrow_length/2, np.cos(self.rotation[-1, 2]) * self.arrow_length/2)
+        dxy = (np.sin(self.yaw_world) * self.arrow_length/2, np.cos(self.rotation[-1, 2]) * self.arrow_length/2)
         self.direction_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='g', head_width=6, width=2)
         self.position_handle.set_offsets(self.translation[-1, :2])
         self.position_history_handle.set_data(self.translation[:, 0], self.translation[:, 1])
@@ -310,9 +309,8 @@ class Plotter:
     def _arrow_position(self):
         try:
             wind = 1 / np.linalg.norm(self.wind[-1, :]) * self.wind[-1, :]
-        except ZeroDivisionError as err:
+        except ZeroDivisionError:
             wind = 0.0
-
 
         xy = (self.arrow_center - wind * self.arrow_length / 2 * 1.6)
         dxy = (self.arrow_center + wind * self.arrow_length / 2 * 0.2) - xy
@@ -345,17 +343,18 @@ class Plotter:
             return False, (roll, pitch, yaw, z, (x, y))
         else:
             try:
-                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind_x, wind_y, wind_z = \
+                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind_x, wind_y, wind_z, yaw_world = \
                     [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
                 thrust = (t1 * 100, t2 * 100, t3 * 100, t4 * 100)
                 return True, (time, np.array([[roll, pitch, yaw]]) * 180 / np.pi, np.array([[x, y, z]]), thrust,
-                              np.array([[wind_x, wind_y]]))
+                              np.array([[wind_x, wind_y]]), yaw_world)
             except ValueError:
                 if self.printouts: print("[ERROR] Couldn't decode message")
-                return True, (0, (0, 0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0))
+                return True, (0, (0, 0, 0), (0, 0, 0), (0, 0, 0, 0), (0, 0), 0)
 
     # OTHER
-    def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float):
+    def _store_new_data(self, rotation: np.ndarray, translation: np.ndarray, wind: float, yaw: float):
+        self.yaw_world = yaw
         self.rotation = np.roll(self.rotation, -1, axis=0)
         self.rotation[-1, :] = rotation
         self.translation = np.roll(self.translation, -1, axis=0)
@@ -366,7 +365,7 @@ class Plotter:
 
 if __name__ == "__main__":
     tm.sleep(1)
-    dh = Plotter(host=host, port=port, printouts=printouts, showing="translations", n_last_states=last_states)
+    dh = Plotter(host=host, port=port, printouts=printouts, showing="rotations", n_last_states=last_states)
 
     print("[INFO] Starting the animation")
     anim = anim.FuncAnimation(dh.figure, dh.loop, interval=1, cache_frame_data=True)
