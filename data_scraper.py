@@ -86,10 +86,9 @@ class DataHandler:
         :return:
         """
 
-
         # check arguments
-        if rotation.shape != (1, 3) or translation.shape != (1, 3) or thrusters.shape != (1, 4)\
-                or wind.shape != (1, 3) or pid.shape != (1, 6):
+        if rotation.shape != (3, 1) or translation.shape != (3, 1) or thrusters.shape != (4, 1)\
+                or wind.shape != (3, 1) or pid.shape != (6, 1):
             logger.error("rotation.shape: " + str(rotation.shape))
             logger.error("translation.shape: " + str(translation.shape))
             logger.error("thrusters.shape: " + str(thrusters.shape))
@@ -100,15 +99,16 @@ class DataHandler:
         # talk to visualization tool
 
         if self.visualize:
-            self._send_message(time=time, rotation=rotation, translation=translation, thrusters=thrusters, wind=wind)
+            self._send_message(time=time, rotation=rotation.T, translation=translation.T, thrusters=thrusters.T,
+                               wind=wind.T)
 
         # save data
         self.time = np.concatenate([self.time, np.array([[time]])], axis=0)
-        self.rotation = np.concatenate([self.rotation, rotation], axis=0)
-        self.translation = np.concatenate([self.translation, translation], axis=0)
-        self.thrusters = np.concatenate([self.thrusters, thrusters], axis=0)
-        self.wind = np.concatenate([self.wind, wind[0, :2][np.newaxis, :]], axis=0)
-        self.pid = np.concatenate([self.pid, pid], axis=0)
+        self.rotation = np.concatenate([self.rotation, rotation.T], axis=0)
+        self.translation = np.concatenate([self.translation, translation.T], axis=0)
+        self.thrusters = np.concatenate([self.thrusters, thrusters.T], axis=0)
+        self.wind = np.concatenate([self.wind, wind[:2].T], axis=0)
+        self.pid = np.concatenate([self.pid, pid.T], axis=0)
 
     def new_setpoints(self, rotation: np.ndarray, translation: np.ndarray):
         message = "SETPOINTS roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(*rotation.T[0])
@@ -240,9 +240,9 @@ if __name__ == "__main__":
         thrust = np.random.random([1, 4])
         w = np.random.randint(-10, 10, [1, 3])
 
-        dh.new_data(time=t, rotation=rot,
-                    translation=trans,
-                    thrusters=thrust, wind=w, pid=np.array([[0.5, 0.8, 20, 0, 0, 0]]))
+        dh.new_data(time=t, rotation=rot.T,
+                    translation=trans.T,
+                    thrusters=thrust.T, wind=w.T, pid=np.array([[0.5, 0.8, 20, 0, 0, 0]]).T)
         tm.sleep(0.1)
         dh.new_setpoints(translation=trans.T, rotation=rot.T)
 
