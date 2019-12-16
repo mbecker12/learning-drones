@@ -122,7 +122,7 @@ class QuadcopterPhysics:
         # resulting forces
         # thrust forces in drone coordinates
         forces = np.array([[0, 0, np.sum(T)]], dtype=np.float32).T
-        print(f"forces: {forces}")
+        print(f"forces through thrust: {forces}")
         G_rotated = np.dot(self.Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
         W_rotated = np.dot(self.Rot, wind_speed.astype(np.float32).T * self.c_w)
         forces += G_rotated + W_rotated
@@ -135,7 +135,7 @@ class QuadcopterPhysics:
         moments = np.array([[L, M, N]]).T
         moments += self.moments_payload
 
-        print(f"forces: {forces}")
+        print(f"total forces: {forces}")
         # return forces in drone's reference frame
         return forces, moments
 
@@ -178,11 +178,11 @@ class QuadcopterPhysics:
         """
         self.Rot = rotation_matrix(roll, pitch, yaw)
 
-        print(f"pid_outputs: {pid_outputs}")
+        # print(f"pid_outputs: {pid_outputs}")
         desired_roll = pid_outputs[0] * VEC_ROLL
         desired_pitch = pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
-        print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")
+        # print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")
         base_thrust = self.G / (4 * self.c_f) + delta_z
         print(f"self.G: {self.G}")
         base_thrust_vec = np.ones((1, 4)) * base_thrust
@@ -195,12 +195,12 @@ class QuadcopterPhysics:
             ratio = 1.
 
         thrust = base_thrust_vec * ratio
-        print(f"thrust: {thrust}")
+        # print(f"thrust: {thrust}")
         thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
         thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
 
-        print("base_thrust:", base_thrust_vec)
-        print(f"ratio: {ratio}")
+        # print("base_thrust:", base_thrust_vec)
+        # print(f"ratio: {ratio}")
         thrust += np.array(desired_roll + desired_pitch + desired_yaw)
         print(f"thrust: {thrust}")
 
