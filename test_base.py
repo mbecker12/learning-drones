@@ -55,7 +55,7 @@ if __name__ == "__main__":
     ]
 
     lin_pids = [
-        PID(kp=1.0, ki=0.0, kd=0.9, timeStep=delta_t, setValue=x_target, integralRange=2, calculateFlag="rangeExit"),
+        PID(kp=1.0, ki=0.5, kd=0.9, timeStep=delta_t, setValue=x_target, integralRange=2, calculateFlag="rangeExit"),
         PID(kp=1.5, ki=0.0, kd=0.3, timeStep=delta_t, setValue=y_target, integralRange=2, calculateFlag="rangeExit"),
         PID(kp=1.5, ki=0.0, kd=0.3, timeStep=delta_t, setValue=z_target, integralRange=2, calculateFlag="rangeExit")
     ]
