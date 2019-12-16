@@ -139,7 +139,7 @@ if __name__ == "__main__":
         lin_outputs = [pid.calculate(lin_inputs[i, 0]) for i, pid in enumerate(lin_pids)]
 
         # transform
-        yaw_world, pid_outputs = quadcopter.translate_rotation_to_global()
+        yaw_world, pid_outputs = quadcopter.translate_rotation_to_global(drone_angle, lin_outputs)
 
         # new Setpoint
         rot_pids[0].set_setpoint()
