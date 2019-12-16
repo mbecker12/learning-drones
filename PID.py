@@ -41,6 +41,15 @@ class PID:
 
         output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
         self.previousControlVal = controlValue
+
+        if self.previousControlVal != 0:
+            controlValDiff = controlValue - self.previousControlVal
+        else:
+            controlValDiff = 0
+
+        output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
+        self.previousControlVal = controlValue
+
         return self.check_output(output)
 
     def calculate_error_sign(self, controlValue):
@@ -91,17 +100,15 @@ class PID:
         return self.check_output(output)
 
     def accumulate_error(self, error):
-
         if np.abs(error) < self.integralRange:
             self.integralError += error
 
     def check_output(self, output):
-        # print("output:", output)
         if output < self.outputLimitRange[0]:
-            output = -1.
+            output = self.outputLimitRange[0]
         elif output > self.outputLimitRange[1]:
-            output = 1.
-        # print("output after limits:", output)
+            output = self.outputLimitRange[1]
+
         return output
 
     def set_setpoint(self, point):

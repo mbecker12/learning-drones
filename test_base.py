@@ -208,7 +208,9 @@ if __name__ == "__main__":
             rotation=np.array([[roll, pitch, yaw]]),
             translation=np.array([[lab_pos[0, 0], lab_pos[1, 0], lab_pos[2, 0]]]),
             thrusters=previous_thrust,
-            wind=previous_wind_speed)
+            wind=previous_wind_speed,
+            pid=np.array([[*rot_outputs]]))
+
 
         forces, moments = quadcopter.calculate_forces_and_moments(
             thrust=previous_thrust,
