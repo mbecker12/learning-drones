@@ -122,7 +122,7 @@ class QuadcopterPhysics:
         # resulting forces
         # thrust forces in drone coordinates
         forces = np.array([[0, 0, np.sum(T)]], dtype=np.float32).T
-        print(f"forces: {forces}")
+        print(f"forces through thrust: {forces}")
         G_rotated = np.dot(self.Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
         W_rotated = np.dot(self.Rot, wind_speed.astype(np.float32).T * self.c_w)
         forces += G_rotated + W_rotated
@@ -135,7 +135,7 @@ class QuadcopterPhysics:
         moments = np.array([[L, M, N]]).T
         moments += self.moments_payload
 
-        print(f"forces: {forces}")
+        print(f"total forces: {forces}")
         # return forces in drone's reference frame
         return forces, moments
 

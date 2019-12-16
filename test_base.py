@@ -121,7 +121,6 @@ if __name__ == "__main__":
             yaw=previous_yaw,
             wind_speed=previous_wind_speed)
 
-    j = 5
     for time in range(timesteps):
         real_time = time * delta_t
 
@@ -143,9 +142,15 @@ if __name__ == "__main__":
         Tr = translational_matrix(previous_roll, previous_pitch, previous_yaw)
         lab_rot_acc = np.dot(Tr, drone_rot_acc)
 
-        [sensors[i].measure_acceleration(drone_lin_acc[i, 0]) for i in range(3)]
-        [sensors[i].measure_acceleration(drone_rot_acc[i-3, 0]) for i in range(3, 6)]
+        # measurement in drone frame
+        # [sensors[i].measure_acceleration(drone_lin_acc[i, 0]) for i in range(3)]
+        # [sensors[i].measure_acceleration(drone_rot_acc[i-3, 0]) for i in range(3, 6)]
 
+        # measurement in lab frame
+        [sensors[i].measure_acceleration(lab_lin_acc[i, 0]) for i in range(3)]
+        [sensors[i].measure_acceleration(lab_rot_acc[i-3, 0]) for i in range(3, 6)]
+
+        # now, everything should be returned in lab coordinates
         pos_x, vel_x = sensors[0].velocity_verlet(previous_x, previous_vx)
         pos_y, vel_y = sensors[1].velocity_verlet(previous_y, previous_vy)
         pos_z, vel_z = sensors[2].velocity_verlet(previous_z, previous_vz)
@@ -153,33 +158,31 @@ if __name__ == "__main__":
         pitch, vpitch = sensors[4].velocity_verlet(previous_pitch, previous_vpitch)
         yaw, vyaw = sensors[5].velocity_verlet(previous_yaw, previous_vyaw)
 
-        drone_pos = np.array([[pos_x], [pos_y], [pos_z]])
-        drone_lin_vel = np.array([[vel_x], [vel_y], [vel_z]])
-        drone_ang_vel = np.array([[vroll], [vpitch], [vyaw]])
+        lab_pos = np.array([[pos_x], [pos_y], [pos_z]])
+        lab_lin_vel = np.array([[vel_x], [vel_y], [vel_z]])
+        # drone_pos = np.array([[pos_x], [pos_y], [pos_z]])
+        # drone_lin_vel = np.array([[vel_x], [vel_y], [vel_z]])
+        # drone_rot_vel = np.array([[vroll], [vpitch], [vyaw]])
 
-        lab_lin_vel = np.dot(quadcopter.Rot.T, drone_lin_vel)
-        lab_ang_vel = np.dot(Tr, drone_ang_vel)
-        lab_pos = lab_pos + verlet_get_delta_x(lab_lin_vel, lab_lin_acc, delta_t)
-        lab_lin_vel = lab_lin_vel + verlet_get_delta_v(lab_lin_acc, lab_lin_acc, delta_t)
+        # lab_lin_vel = np.dot(quadcopter.Rot.T, drone_lin_vel)
+        # lab_rot_vel = np.dot(Tr, drone_rot_vel)
+        # lab_pos = lab_pos + verlet_get_delta_x(lab_lin_vel, lab_lin_acc, delta_t)
+        # lab_lin_vel = lab_lin_vel + verlet_get_delta_v(lab_lin_acc, lab_lin_acc, delta_t)
         
         print(f"x: {lab_pos[0, 0]}, vx: {lab_lin_vel[0, 0]}, ax: {lab_lin_acc[0, 0]}")
         print(f"y: {lab_pos[1, 0]}, vy: {lab_lin_vel[1, 0]}, ay: {lab_lin_acc[1, 0]}")
         print(f"z: {lab_pos[2, 0]}, vz: {lab_lin_vel[2, 0]}, az: {lab_lin_acc[2, 0]}")
 
-        # inputs = np.zeros(len(pids))
         rot_inputs = np.array([roll, pitch, yaw])
         rot_outputs = [pid.calculate(rot_inputs[i]) for i, pid in enumerate(rot_pids)]
 
-        # lin_inputs = np.array([pos_z])
         lin_inputs = np.array([lab_pos[2, 0]])
         lin_outputs = [pid.calculate(lin_inputs[i]) for i, pid in enumerate(lin_pids)]
         print("rot_outputs: ", rot_outputs)
         print("lin_outputs: ", lin_outputs)
         delta_z = lin_outputs[0]
-        # delta_z = 0.0
-      
         thrust = quadcopter.control_thrust(rot_outputs, roll, pitch, yaw, delta_z)
-        # thrust = np.array([[0., 0., 0., 0.]])
+
         print(pos_z)
         
 
