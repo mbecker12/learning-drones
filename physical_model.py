@@ -3,6 +3,7 @@ Created by Jan Schiffeler at 01.12.19
 jan.schiffeler[at]gmail.com
 
 Changed by
+Marvin Becker
 
     .-.      .-.
    | 0 |    | 1 |
@@ -106,6 +107,14 @@ class QuadcopterPhysics:
 
     def calculate_accelerations(self, rotation: list, wind_speed: np.ndarray, thrust: np.ndarray,
                                lin_acc_drone_2_lab: bool) -> (np.ndarray, np.ndarray):
+        """
+        Calculate linear and rotational acceleration of the instantaneous state.
+        :param rotation [roll, pitch, yaw]
+        :param wind_speed    3 rows 1 column
+        :param thrust    4 rows 1 column
+        :param lin_acc_drone_2_lab
+        :return: 3 rows 1 column each
+        """
         self.Rot = rotation_matrix(rotation[0], rotation[1], rotation[2])
 
         # motor forces
@@ -121,9 +130,9 @@ class QuadcopterPhysics:
         forces += G_rotated + W_rotated
 
         # resulting moments
-        L = self.r_m * (T[0, 0] + T[0, 3] - T[0, 1] - T[0, 2])
-        M = self.r_m * (T[0, 2] + T[0, 3] - T[0, 0] - T[0, 1])
-        N = np.sqrt(2) * self.r_m * (R[0, 1] + R[0, 3] - R[0, 0] - R[0, 2])
+        L = self.r_m * (T[0, 0] + T[3, 0] - T[1, 0] - T[2, 0])
+        M = self.r_m * (T[2, 0] + T[3, 0] - T[0, 0] - T[1, 0])
+        N = np.sqrt(2) * self.r_m * (R[1, 0] + R[3, 0] - R[0, 0] - R[2, 0])
         moments = np.array([[L, M, N]]).T
         moments += self.moments_payload
 
@@ -136,7 +145,12 @@ class QuadcopterPhysics:
 
         return lin_acc, rot_acc
 
-    def calculate_motor_thrust(self, pid_outputs: np.ndarray, rotation: list):
+    def calculate_motor_thrust(self, pid_outputs: np.ndarray, rotation: list) -> np.ndarray:
+        """
+        :param pid_outputs 6 rows 1 column
+        :param rotation [roll, pitch, yaw]
+        :return: 4 rows 1 column
+        """
         self.Rot = rotation_matrix(rotation[0], rotation[1], rotation[2])
 
         desired_rotation = self.angle_control_to_thrust.dot(pid_outputs[:3])
@@ -148,7 +162,6 @@ class QuadcopterPhysics:
             transforming_ratio = 1/(math.cos(rotation[0]) * math.cos(rotation[1]))
         except ZeroDivisionError:
             transforming_ratio = 1
-        print("ratio: ", transforming_ratio)
 
         base_thrust_transformed = base_thrust * transforming_ratio
         base_thrust_transformed[base_thrust_transformed > 1] = 1
@@ -255,7 +268,6 @@ class QuadcopterPhysics:
             print("zerror")
             ratio = 1.
 
-        print("ratio2: ", ratio)
         thrust = base_thrust_vec * ratio
         # print(f"thrust: {thrust}")
         thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
@@ -279,13 +291,17 @@ if __name__ == "__main__":
                            I_x=I_x, I_y=I_y, I_z=I_z,
                            coef_force=coef_force, coef_moment=coef_moment, coef_wind=coef_wind,
                            gravity=gravity, mass_payload=mass_payload, x_payload=x_payload, y_payload=y_payload)
-    t = np.array([[1, 1, 1, 1]])
-    f, m = qc.calculate_forces_and_moments(thrust=t, roll=0, pitch=0, yaw=0, wind_speed=np.array([[0, 0, 0]]))
+    t = np.array([[0.1, 0.1, 0.1, 0.1]])
+    roll, pitch, yaw = 0.0, 0.0, 0.0
+    wind = np.array([[0, 0, 0]])
+    print(qc.calculate_accelerations(rotation=[roll, pitch, yaw], wind_speed=wind.T, thrust=t.T, lin_acc_drone_2_lab=False))
+    f, m = qc.calculate_forces_and_moments(thrust=t, roll=roll, pitch=pitch, yaw=yaw, wind_speed=wind)
+    print(qc.convert_to_acceleration(f, m))
     # print(f)
     # print(m)
-    roll, pitch, yaw = 0.0, 0.0, 0.0
+
     pid = np.array([[0.0, 0.0, 0.0, 0.0, 0.0, -0.2]], dtype=np.float32).T
     t = qc.calculate_motor_thrust(rotation=[roll, pitch, yaw], pid_outputs=pid)
-    print(t)
+    # print(t)
     t = qc.control_thrust(roll=roll, pitch=pitch, yaw=yaw, pid_outputs=pid[:3], delta_z=pid[5, 0])
-    print(t)
+    # print(t)
