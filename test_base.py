@@ -121,6 +121,7 @@ if __name__ == "__main__":
             yaw=previous_yaw,
             wind_speed=previous_wind_speed)
 
+    # force changes
     for time in range(timesteps):
         real_time = time * delta_t
 
