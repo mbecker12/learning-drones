@@ -56,6 +56,12 @@ def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     # return np.dot(R_x, np.dot(R_y, R_z))
 
 
+def rotation_matrix_2d(alpha):
+    R = np.array([[ np.cos(alpha), np.sin(alpha)],
+                  [-np.sin(alpha), np.cos(alpha)]])
+    return R
+
+
 def translational_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     """
     Calculate the rotational matrix to convert angular velocities 
@@ -173,6 +179,27 @@ class QuadcopterPhysics:
 
         return thrust
 
+    def translate_rotation_to_global(self, rotation: np.ndarray, pid_outputs: np.ndarray) -> (float, np.ndarray):
+        """
+        :param rotation [roll, pitch, yaw]
+        :param pid_outputs
+        :return: yaw_world for plotting, adapted pid_outputs 6 rows 1 column
+        """
+        self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
+        x_w = self.Rot[:, 0]
+        x_w[2] = 0
+        x_axes = np.array([1, 0, 0])
+
+        first = np.linalg.norm(np.cross(x_w, x_axes))
+        second = x_w.dot(x_axes)
+        yaw_world = np.arctan2(first, second)
+
+        x_y_changed = rotation_matrix_2d(yaw_world).dot(pid_outputs[3:5])
+        changed_pid_outputs = pid_outputs.copy()
+        changed_pid_outputs[3:5] = x_y_changed
+
+        return yaw_world, changed_pid_outputs
+
     def calculate_forces_and_moments(self, thrust: np.ndarray,
                                      roll: float, pitch: float, yaw: float,
                                      wind_speed: np.ndarray) -> (np.ndarray, np.ndarray):
@@ -231,12 +258,6 @@ class QuadcopterPhysics:
             moments[2] * I_Z_INV])
 
         return lin_acc, rot_acc
-
-    def translate_rotation_to_global(self, rotation: list, pid_outputs: np.ndarray) -> (float, np.ndarray):
-        """
-        :param rotation [roll, pitch, yaw]
-        :param pid_outputs
-        """
 
     def control_thrust(self,
                        pid_outputs: np.ndarray,
@@ -304,16 +325,18 @@ if __name__ == "__main__":
                            coef_force=coef_force, coef_moment=coef_moment, coef_wind=coef_wind,
                            gravity=gravity, mass_payload=mass_payload, x_payload=x_payload, y_payload=y_payload)
     t = np.array([[0.1, 0.1, 0.1, 0.1]])
-    roll, pitch, yaw = 0.0, 0.0, 0.0
+    roll, pitch, yaw = 3.14159/4, 0.0, 3.14159/2
     wind = np.array([[0, 0, 0]])
-    print(qc.calculate_accelerations(rotation=np.array([[roll, pitch, yaw]]).T, wind_speed=wind.T, thrust=t.T, lin_acc_drone_2_lab=False))
+    # print(qc.calculate_accelerations(rotation=np.array([[roll, pitch, yaw]]).T, wind_speed=wind.T, thrust=t.T, lin_acc_drone_2_lab=False))
     f, m = qc.calculate_forces_and_moments(thrust=t, roll=roll, pitch=pitch, yaw=yaw, wind_speed=wind)
-    print(qc.convert_to_acceleration(f, m))
+    # print(qc.convert_to_acceleration(f, m))
     # print(f)
     # print(m)
 
-    pid = np.array([[0.0, 0.0, 0.0, 0.0, 0.0, -0.2]], dtype=np.float32).T
+    pid = np.array([[0.0, 0.0, 0.0, 0.5, 0.0, -0.2]], dtype=np.float32).T
     t = qc.calculate_motor_thrust(rotation=np.array([[roll, pitch, yaw]]).T, pid_outputs=pid)
-    print(t)
+    # print(t)
     t = qc.control_thrust(roll=roll, pitch=pitch, yaw=yaw, pid_outputs=pid[:3], delta_z=pid[5, 0])
-    print(t)
+    # print(t)
+
+    print(qc.translate_rotation_to_global(rotation=np.array([[roll, pitch, yaw]]).T, pid_outputs=pid))
