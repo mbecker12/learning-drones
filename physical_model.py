@@ -25,9 +25,9 @@ from parameters import *
 I_X_INV = 1.0 / I_x
 I_Y_INV = 1.0 / I_y
 I_Z_INV = 1.0 / I_z
-VEC_ROLL = np.array([[1, -1, -1, 1]])
-VEC_PITCH = np.array([[-1, -1, 1, 1]])
-VEC_YAW = np.array([[-1, 1, -1, 1]])
+VEC_ROLL = np.array([[1, -1, -1, 1]]).T
+VEC_PITCH = np.array([[-1, -1, 1, 1]]).T
+VEC_YAW = np.array([[-1, 1, -1, 1]]).T
 
 from time import sleep
 
@@ -147,16 +147,18 @@ class QuadcopterPhysics:
         rot_acc = moments * self.inverse_inertia_vector
 
         if lin_acc_drone_2_lab:
-            lin_acc.dot(self.Rot.T)
+            lin_acc = np.dot(self.Rot.T, lin_acc)
+            rot_acc = np.dot(self.Rot.T, rot_acc)
 
         return lin_acc, rot_acc
 
     def calculate_motor_thrust(self, pid_outputs: np.ndarray, rotation: np.ndarray) -> np.ndarray:
         """
-        :param pid_outputs 6 rows 1 column
+        :param pid_outputs 6 rows 1 column (3 rotation, 3 linear)
         :param rotation [roll, pitch, yaw]
         :return: 4 rows 1 column
         """
+        print(f"pid_outputs: {pid_outputs}")
         self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
 
         desired_rotation = self.angle_control_to_thrust.dot(pid_outputs[:3])
@@ -204,6 +206,7 @@ class QuadcopterPhysics:
                                      roll: float, pitch: float, yaw: float,
                                      wind_speed: np.ndarray) -> (np.ndarray, np.ndarray):
         """
+        DEPRECATED
         name is pretty obvious don't you think?
         :param thrust: [[T_0], [T_1], [T_2], [T_3]]
         :param roll: rot around x
@@ -225,14 +228,14 @@ class QuadcopterPhysics:
         forces = np.array([[0, 0, np.sum(T)]], dtype=np.float32).T
         # print(f"forces: {forces}")
         G_rotated = np.dot(self.Rot, np.array([[0, 0, -1 * self.G]], dtype=np.float32).T)
-        W_rotated = np.dot(self.Rot, wind_speed.astype(np.float32).T * self.c_w)
+        W_rotated = np.dot(self.Rot, wind_speed.astype(np.float32) * self.c_w)
         forces += G_rotated + W_rotated
         # print(f"G_rotated: {G_rotated}")
 
         # resulting moments
-        L = self.r_m * (T[0, 0] + T[0, 3] - T[0, 1] - T[0, 2])
-        M = self.r_m * (T[0, 2] + T[0, 3] - T[0, 0] - T[0, 1])
-        N = np.sqrt(2) * self.r_m * (R[0, 1] + R[0, 3] - R[0, 0] - R[0, 2])
+        L = self.r_m * (T[0, 0] + T[3, 0] - T[1, 0] - T[2, 0])
+        M = self.r_m * (T[2, 0] + T[3, 0] - T[0, 0] - T[1, 0])
+        N = np.sqrt(2) * self.r_m * (R[1, 0] + R[3, 0] - R[0, 0] - R[2, 0])
         moments = np.array([[L, M, N]]).T
         moments += self.moments_payload
 
@@ -244,6 +247,7 @@ class QuadcopterPhysics:
                                 forces: np.ndarray,
                                 moments: np.ndarray) -> (np.ndarray, np.ndarray):
         """
+        DEPRECATED
         Convert the forces and momenta to useful linear and rotational
         acceleration, respectively.
         :param forces: calculated linear forces
@@ -265,9 +269,11 @@ class QuadcopterPhysics:
                        pitch: float,
                        yaw: float,
                        delta_z: float,
+                       delta_x: float = 0.0,
                        threshold: float = 0.0,
                        limit_range: list = [-1, 1]) -> np.ndarray:
         """
+        DEPRECATED
         From the PID outputs, calculate useful thrust levels for all
         four rotors.
         :param pid_outputs: outputs of three pid
@@ -279,14 +285,16 @@ class QuadcopterPhysics:
         """
         self.Rot = rotation_matrix(roll, pitch, yaw)
 
-        # print(f"pid_outputs: {pid_outputs}")
-        desired_roll = pid_outputs[0] * VEC_ROLL
-        desired_pitch = pid_outputs[1] * VEC_PITCH
+        desired_pitch = delta_x * 0.5 * VEC_PITCH
+        desired_roll = 0.0
+
+        desired_roll += pid_outputs[0] * VEC_ROLL
+        desired_pitch += pid_outputs[1] * VEC_PITCH
         desired_yaw = pid_outputs[2] * VEC_YAW
         # print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")
         base_thrust = self.G / (4 * self.c_f) + delta_z
         # print(f"self.G: {self.G}")
-        base_thrust_vec = np.ones((1, 4)) * base_thrust
+        base_thrust_vec = np.ones((4, 1)) * base_thrust
         # ratio = self.G / base_thrust_force_lab[0, 2]
         try:
             ratio = 1. / (math.cos(roll) * math.cos(pitch))
@@ -297,16 +305,19 @@ class QuadcopterPhysics:
 
         thrust = base_thrust_vec * ratio
         # print(f"thrust: {thrust}")
-        thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
-        thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
+        thrust[thrust > 1] = 1
+        thrust[thrust < 0] = 0
+        # thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
+        # thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
 
         # print("base_thrust:", base_thrust_vec)
         # print(f"ratio: {ratio}")
         thrust += np.array(desired_roll + desired_pitch + desired_yaw)
         # print(f"thrust: {thrust}")
-
-        thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
-        thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
+        thrust[thrust > 1] = 1
+        thrust[thrust < 0] = 0
+        # thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
+        # thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
         for th in thrust[0]:
             assert(0 <= th <= 1)
         return thrust

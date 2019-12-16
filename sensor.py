@@ -4,7 +4,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-
+# TODO: Rewrite Sensor class based on updated physical model 
 class Sensor:
     """
     Very Simple Sensor class, able to:
@@ -20,10 +20,18 @@ class Sensor:
     sensors (e.g. accelerometers), for instance: do they have
     memory of the last couple of acceleration values?
     """
-    def __init__(self, delta_t):
+    def __init__(self, delta_t, previous_pos, previous_vel):
         self.current_acceleration = 0.0
         self.last_acceleration = 0.0
+        self.previous_pos = previous_pos
+        self.previous_vel = previous_vel
         self.delta_t = delta_t
+
+    def set_position(self, position):
+        self.previous_pos = position
+
+    def set_velocity(self, velocity):
+        self.previous_vel = velocity
 
     def return_acceleration(self):
         return self.current_acceleration
@@ -54,15 +62,25 @@ class Sensor:
         delta_v = 0.5 * (self.last_acceleration + self.current_acceleration) * self.delta_t
         return delta_v
 
-    def get_current_x_and_v(self, previous_position, previous_velocity):
-        velocity = previous_velocity + self.naive_get_delta_v()
-        position = previous_position + self.naive_get_delta_x(velocity)
-        return position, velocity
+    def get_current_x_and_v(self, return_vel=False):
+        velocity = self.previous_vel + self.naive_get_delta_v()
+        position = self.previous_pos + self.naive_get_delta_x(velocity)
+        self.previous_pos = position
+        self.previous_vel = velocity
+        if not return_vel:
+            return position
+        else:
+            return position, velocity
 
-    def velocity_verlet(self, previous_position, previous_velocity):
-        position = previous_position + self.verlet_get_delta_x(previous_velocity)
-        velocity = previous_velocity + self.verlet_get_delta_v()
-        return position, velocity
+    def velocity_verlet(self, return_vel=True):
+        position = self.previous_pos + self.verlet_get_delta_x(self.previous_vel)
+        velocity = self.previous_vel + self.verlet_get_delta_v()
+        self.previous_pos = position
+        self.previous_vel = velocity
+        if not return_vel:
+            return position
+        else:
+            return position, velocity
 
 
 class DataGenerator:
@@ -98,6 +116,28 @@ class DataGenerator:
             while True:
                 self.time += self.timestep
                 yield self.const + self.time * self.slope
+
+
+def get_positions_and_angles(sensors: list) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+    """
+    Wrapper function to integrate all coordinates in one function call.
+    :param sensors: list of 6 sensors, 3 linear sensors, 3 angular sensors (in that order)
+    :returns: lab position, lab velocity, drone angle, drone angular velocity
+    """
+    pos_x, vel_x = sensors[0].velocity_verlet()
+    pos_y, vel_y = sensors[1].velocity_verlet()
+    pos_z, vel_z = sensors[2].velocity_verlet()
+    roll, vroll = sensors[3].velocity_verlet()
+    pitch, vpitch = sensors[4].velocity_verlet()
+    yaw, vyaw = sensors[5].velocity_verlet()
+
+    lab_pos = np.array([[pos_x], [pos_y], [pos_z]])
+    lab_lin_vel = np.array([[vel_x], [vel_y], [vel_z]])
+
+    drone_angle = np.array([[roll], [pitch], [yaw]])
+    drone_angle_vel = np.array([[vroll], [vpitch], [vyaw]])
+
+    return lab_pos, lab_lin_vel, drone_angle, drone_angle_vel
 
 
 if __name__ == "__main__":
