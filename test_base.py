@@ -153,7 +153,7 @@ if __name__ == "__main__":
             dh.new_setpoints(rot_targets, lin_targets)
             
         try:
-            sleep(0.01)
+            sleep(0.05)
         except KeyboardInterrupt:
             dh.finish()
 
