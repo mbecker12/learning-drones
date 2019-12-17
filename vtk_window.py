@@ -90,7 +90,7 @@ class DroneHandle:
             return roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi
         except ValueError:
             if self.printouts: print("[ERROR] Couldn't decode message")
-            return 0, 0, 0
+            return self.roll, self.pitch, self.yaw
 
     def _update_vtk(self, obj, l_roll: float, l_pitch: float, l_yaw: float,
                     n_roll: float, n_pitch: float, n_yaw: float):

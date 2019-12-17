@@ -100,7 +100,7 @@ class Plotter:
 
             # add setpoint handler to dictionary
             self.setpoint_handler.update({"roll": roll_sp, "pitch": pitch_sp, "yaw": yaw_sp})
-            self.setpoint_handler.update({"roll": self.roll_plot, "pitch": pitch_plot, "yaw":yaw_plot})
+            self.plots.update({"roll": self.roll_plot, "pitch": pitch_plot, "yaw": yaw_plot})
 
             plt.draw()
 
@@ -312,7 +312,7 @@ class Plotter:
     def _arrow_position(self):
         try:
             wind = 1 / np.linalg.norm(self.wind[-1, :]) * self.wind[-1, :]
-        except ZeroDivisionError as err:
+        except ZeroDivisionError:
             wind = 0.0
 
         xy = (self.arrow_center - wind * self.arrow_length / 2 * 1.6)
@@ -343,7 +343,7 @@ class Plotter:
         if self.printouts: print("[INFO] Latest Message: " + msg)
         if meaning[0] == "SETPOINTS":
             roll, pitch, yaw, x, y, z = [float(meaning[i]) for i in range(2, len(meaning), 2)]
-            return False, (roll, pitch, yaw, z, (x, y))
+            return False, (roll * 180 / np.pi, pitch * 180 / np.pi, yaw * 180 / np.pi, z, (x, y))
         else:
             try:
                 time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind_x, wind_y, wind_z = \

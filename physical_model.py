@@ -122,7 +122,7 @@ class QuadcopterPhysics:
         :return: 3 rows 1 column each
         """
         self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
-        print(f"rotation matrix: {self.Rot}")
+        # print(f"rotation matrix: {self.Rot}")
         # motor forces
         T = thrust * self.c_f
         R = thrust * self.c_m
