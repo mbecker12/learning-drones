@@ -73,7 +73,7 @@ class DataHandler:
         self.setpoints = np.zeros([1, 6], dtype=np.float32)
 
     def new_data(self, time: float, rotation: np.ndarray, translation: np.ndarray, thrusters: np.ndarray,
-                 wind: np.ndarray, pid: np.ndarray, yaw_world: float):
+                 wind: np.ndarray, pid: np.ndarray):
 
         """
         Create a new set of data points and visualize them
@@ -83,7 +83,6 @@ class DataHandler:
         :param thrusters: [t_1, t_2, t_3, t_4]
         :param wind: [w_x, w_y, w_z]
         :param pid: [c_roll, c_pitch, c_yaw]
-        :param yaw_world: corrected yaw
         :return:
         """
 
@@ -101,7 +100,7 @@ class DataHandler:
 
         if self.visualize:
             self._send_message(time=time, rotation=rotation.T, translation=translation.T, thrusters=thrusters.T,
-                               wind=wind.T, yaw_world=yaw_world)
+                               wind=wind.T)
 
         # save data
         self.time = np.concatenate([self.time, np.array([[time]])], axis=0)
@@ -113,6 +112,8 @@ class DataHandler:
 
     def new_setpoints(self, rotation: np.ndarray, translation: np.ndarray):
         message = "SETPOINTS roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(*rotation.T[0])
+        print(f"translation: {translation}")
+        print(f"*translation.T[0]: {translation.T[0]}")
         message += "x: {} y: {} z: {}\n".format(*translation.T[0])
         if self.printouts: print("[INFO] Message send: ", message)
         if self.visualize:
@@ -126,6 +127,7 @@ class DataHandler:
         trans_rot = np.concatenate([rotation.T, translation.T], axis=1)
         setpoints = np.repeat(a=trans_rot, repeats=self.time.shape[0] - self.setpoints.shape[0], axis=0)
         self.setpoints = np.concatenate([self.setpoints, setpoints], axis=0)
+
 
     def finish(self):
         """
@@ -170,14 +172,12 @@ class DataHandler:
             if self.printouts: print("[INFO] Client connected to: ", addr)
 
     def _send_message(self, time: float, rotation: np.ndarray, translation: np.ndarray,
-                      thrusters: np.ndarray, wind: np.ndarray, yaw_world: float):
+                      thrusters: np.ndarray, wind: np.ndarray):
         message = "time: {} ".format(time)
         message += "roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(*rotation[0])
-
         message += "x: {} y: {} z: {} ".format(*translation[0])
         message += "t_1: {} t_2: {} t_3: {} t_4: {} ".format(*thrusters[0])
-        message += "w_x: {} w_y: {} w_z: {}".format(*wind[0])
-        message += "yaw_world: {}\n".format(yaw_world)
+        message += "w_x: {} w_y: {} w_z: {}\n".format(*wind[0])
         if self.printouts: print("[INFO] Message send: ", message)
         for c in self.conn:
             try:
@@ -243,7 +243,7 @@ if __name__ == "__main__":
 
         dh.new_data(time=t, rotation=rot.T,
                     translation=trans.T,
-                    thrusters=thrust.T, wind=w.T, pid=np.array([[0.5, 0.8, 20, 0, 0, 0]]).T, yaw_world=0.52)
+                    thrusters=thrust.T, wind=w.T, pid=np.array([[0.5, 0.8, 20, 0, 0, 0]]).T)
         tm.sleep(0.1)
         dh.new_setpoints(translation=trans.T, rotation=rot.T)
 
