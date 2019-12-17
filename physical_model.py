@@ -122,7 +122,7 @@ class QuadcopterPhysics:
         :return: 3 rows 1 column each
         """
         self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
-
+        print(f"rotation matrix: {self.Rot}")
         # motor forces
         T = thrust * self.c_f
         R = thrust * self.c_m
@@ -148,7 +148,8 @@ class QuadcopterPhysics:
 
         if lin_acc_drone_2_lab:
             lin_acc = np.dot(self.Rot.T, lin_acc)
-            rot_acc = np.dot(self.Rot.T, rot_acc)
+            Tr = translational_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
+            rot_acc = np.dot(Tr, rot_acc)
 
         return lin_acc, rot_acc
 
@@ -192,8 +193,9 @@ class QuadcopterPhysics:
         :param pid_outputs
         :return: yaw_world for plotting, adapted pid_outputs 6 rows 1 column (3 rotation, 3 linear)
         """
-        self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0]).T
-        x_w = self.Rot[:, 0]
+        self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
+        
+        x_w = self.Rot[0, :]
         p = x_w[:2]
         x_axes = np.array([1, 0])
 
@@ -201,7 +203,7 @@ class QuadcopterPhysics:
         second = p.dot(x_axes)
         yaw_world = np.arctan2(first, second)
 
-        x_y_changed = rotation_matrix_2d(yaw_world).dot(pid_outputs[3:5])
+        x_y_changed = rotation_matrix_2d(yaw_world).T.dot(pid_outputs[3:5])
         changed_pid_outputs = pid_outputs.copy()
         changed_pid_outputs[3:5] = x_y_changed
 
@@ -275,6 +277,7 @@ class QuadcopterPhysics:
                        yaw: float,
                        delta_z: float,
                        delta_x: float = 0.0,
+                       delta_y: float = 0.0,
                        threshold: float = 0.0,
                        limit_range: list = [-1, 1]) -> np.ndarray:
         """
@@ -290,9 +293,9 @@ class QuadcopterPhysics:
         self.Rot = rotation_matrix(roll, pitch, yaw)
 
         desired_pitch = delta_x * 0.5 * VEC_PITCH
-        desired_roll = 0.0
+        desired_roll = delta_y * 0.5 * VEC_ROLL
 
-        desired_roll += pid_outputs[0, 0] * VEC_ROLL
+        desired_roll -= pid_outputs[0, 0] * VEC_ROLL
         desired_pitch += pid_outputs[1, 0] * VEC_PITCH
         desired_yaw = pid_outputs[2, 0] * VEC_YAW
         # print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")

@@ -276,7 +276,7 @@ class Plotter:
     # TRANSLATION FUNCTIONS
     def _update_translations(self, time: float, thrusters: tuple):
         # update line and scatter plots
-        self.plane_plot.set(title="Time: {}s".format(time))
+        self.plane_plot.set(title="Time: {:.4f}s".format(time))
         self.height_handle.set_data(self.plotting_assistant, self.translation[:, 2])
 
         # set wind arrow
@@ -289,7 +289,7 @@ class Plotter:
         # set position
         self.direction_arrow_handle.remove()
         xy = (self.translation[-1, 0], self.translation[-1, 1])
-        dxy = (np.sin(self.rotation[-1, 2]) * self.arrow_length/2, np.cos(self.rotation[-1, 2]) * self.arrow_length/2)
+        dxy = (np.sin(self.rotation[-1, 2] * np.pi / 180) * self.arrow_length/2, np.cos(self.rotation[-1, 2] * np.pi / 180) * self.arrow_length/2)
         self.direction_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='g', head_width=6, width=2)
         self.position_handle.set_offsets(self.translation[-1, :2])
         self.position_history_handle.set_data(self.translation[:, 0], self.translation[:, 1])
