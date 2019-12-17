@@ -254,7 +254,7 @@ class Plotter:
     def _update_rotations(self, time: float, thrusters: tuple):
         # update line plots
         self.roll_handle.set_data(self.plotting_assistant, self.rotation[:, 0])
-        self.roll_plot.set(title="Time: {}s".format(time))
+        self.roll_plot.set(title="Time: {:.4f}s".format(time))
         self.pitch_handle.set_data(self.plotting_assistant, self.rotation[:, 1])
         self.yaw_handle.set_data(self.plotting_assistant, self.rotation[:, 2])
         self.wind_handle.set_data(self.plotting_assistant, self.wind[:, 0])
@@ -277,7 +277,7 @@ class Plotter:
     # TRANSLATION FUNCTIONS
     def _update_translations(self, time: float, thrusters: tuple):
         # update line and scatter plots
-        self.plane_plot.set(title="Time: {}s".format(time))
+        self.plane_plot.set(title="Time: {:.4f}s".format(time))
         self.height_handle.set_data(self.plotting_assistant, self.translation[:, 2])
 
         # set wind arrow

@@ -153,7 +153,7 @@ if __name__ == "__main__":
             dh.new_setpoints(rot_targets, lin_targets)
             
         try:
-            sleep(0.1)
+            sleep(0.01)
         except KeyboardInterrupt:
             dh.finish()
 
@@ -209,7 +209,7 @@ if __name__ == "__main__":
         #   pid_outputs[5, 0], delta_x=pid_outputs[3, 0], delta_y=pid_outputs[4, 0])
 
         dh.new_data(
-            time=time + delta_t,
+            time=time * delta_t,
             rotation=drone_angle,
             translation=lab_pos,
             thrusters=thrust,
