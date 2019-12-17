@@ -115,17 +115,17 @@ class DataHandler:
         message += "x: {} y: {} z: {}\n".format(*translation.T[0])
         if self.printouts: print("[INFO] Message send: ", message)
         if self.visualize:
-            for c in self.conn:
-                try:
-                    c.sendall(message.encode())
-                except BrokenPipeError:
-                    # if one connection fails save the progress and terminate
-                    print("[ERROR] One connection has been disconnected! Saving and closing...")
-                    self.finish()
+            # for c in self.conn:
+            # we know visualisazion gets connected first! TODO Greet message between the 3
+            try:
+                self.conn[0].sendall(message.encode())
+            except BrokenPipeError:
+                # if one connection fails save the progress and terminate
+                print("[ERROR] One connection has been disconnected! Saving and closing...")
+                self.finish()
         trans_rot = np.concatenate([rotation.T, translation.T], axis=1)
         setpoints = np.repeat(a=trans_rot, repeats=self.time.shape[0] - self.setpoints.shape[0], axis=0)
         self.setpoints = np.concatenate([self.setpoints, setpoints], axis=0)
-
 
     def finish(self):
         """
