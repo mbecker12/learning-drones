@@ -8,6 +8,7 @@ from parameters import *
 from data_scraper import DataHandler
 from sensor import Sensor, get_positions_and_angles
 from time import sleep
+from utility import *
 import sys
 
 
@@ -39,16 +40,18 @@ if __name__ == "__main__":
     delta_t = 0.01
     timesteps = 5000
 
-    x_target = 7.5
-    y_target = 7.5
-    z_target = 20
+    x_target = 0
+    y_target = 0
+    z_target = 10
     roll_target = 0
-    pitch_target = 0
+    pitch_target = 30
     yaw_target = 0
     # yaw_target = np.arctan(y_target / x_target) * 180 / np.pi
     print(f"yaw_target: {yaw_target}")
     rot_outputs = np.array([[roll_target, pitch_target, yaw_target]]).T * np.pi / 180
     lin_outputs = np.array([[x_target, y_target, z_target]]).T
+    lin_targets = np.array([[x_target, y_target, z_target]]).T
+    rot_targets = np.array([[roll_target, pitch_target, yaw_target]]).T * np.pi / 180
     # Initialize Drone Hardware
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t, initial_pos[i, 0], initial_vel[i, 0]) for i in range(3)]
@@ -59,16 +62,16 @@ if __name__ == "__main__":
             outputLimitRange=[-np.pi/4, np.pi/4]),
         PID(kp=0.7, ki=0.1, kd=0.1, timeStep=delta_t, setValue=pitch_target * np.pi / 180, integralRange=2, calculateFlag="signChange",
             outputLimitRange=[-np.pi/4, np.pi/4]),
-        PID(kp=0.4, ki=0.1, kd=0.1, timeStep=delta_t, setValue=yaw_target * np.pi / 180, integralRange=2, calculateFlag="signChange",
-            outputLimitRange=[-np.pi/4, np.pi/4])
+        PID(kp=0.2, ki=0.01, kd=0.1, timeStep=delta_t, setValue=yaw_target * np.pi / 180, integralRange=2, calculateFlag="signChange",
+            outputLimitRange=[-np.pi/6, np.pi/6])
     ]
 
     lin_pids = [
         PID(kp=0.9, ki=0.1, kd=0.8, timeStep=delta_t, setValue=x_target, integralRange=2, calculateFlag="signChange",
-            outputLimitRange=[-np.pi/6, np.pi/6]),
+            outputLimitRange=[-np.pi/5, np.pi/5]),
         PID(kp=0.9, ki=0.1, kd=0.8, timeStep=delta_t, setValue=y_target, integralRange=2, calculateFlag="signChange",
-            outputLimitRange=[-np.pi/6, np.pi/6]),
-        PID(kp=0.8, ki=0.0, kd=0.6, timeStep=delta_t, setValue=z_target, integralRange=2, calculateFlag="signChange")
+            outputLimitRange=[-np.pi/5, np.pi/5]),
+        PID(kp=0.8, ki=0.1, kd=0.6, timeStep=delta_t, setValue=z_target, integralRange=2, calculateFlag="signChange")
     ]
 
     quadcopter = QuadcopterPhysics(
@@ -106,14 +109,48 @@ if __name__ == "__main__":
     ###############################################
     ################ MAIN LOOP ####################
     ###############################################
+    target_cheoreography = np.asarray([
+        [[0.52], [0.0], [0.0], [0.0], [0.0], [10.0]],
+        [[0.52], [0.52], [0.0], [0.0], [0.0], [10.0]],
+        [[0.0], [0.0], [0.0], [0.0], [0.0], [10.0]],
+        [[0.0], [0.0], [1.0], [0.0], [0.0], [10.0]],
+        [[0.0], [0.0], [0.0], [0.0], [0.0], [10.0]],
+        [[0.52], [0.0], [0.3], [0.0], [0.0], [10.0]],
+        [[0.52], [0.0], [0.5], [0.0], [0.0], [10.0]],
+        [[0.0], [0.0], [0.5], [0.0], [0.0], [10.0]],
+        [[0.0], [0.3], [0.5], [0.0], [0.0], [10.0]],
+        [[0.0], [0.0], [0.0], [0.0], [0.0], [10.0]],
+        [[0.0], [0.7], [0.0], [0.0], [0.0], [10.0]],
+        [[0.52], [0.7], [0.0], [0.0], [0.0], [10.0]]
+        ])
+    stab_counter = 0
+    stab_time_max = 60
+    target_index = 0
     for time in range(timesteps):
+        current = np.concatenate([drone_angle, lab_pos])
+        targets = np.concatenate([rot_targets, lin_targets])
+        radius = 2
+        stab = stability_check(targets, current, roll=0.1, pitch=0.1, yaw=0.1)
+        print(f"stab: {stab}")
+        stab_counter, target_index = check_and_count_stability(stab, stab_time_max, stab_counter, target_index)
+        rot_targets = target_cheoreography[target_index][0:3]
+        lin_targets = target_cheoreography[target_index][3:6]
+        rot_pids[0].set_setpoint(rot_targets[0, 0])
+        rot_pids[1].set_setpoint(rot_targets[1, 0])
+        rot_pids[2].set_setpoint(rot_targets[2, 0])
+        
+        lin_pids[0].set_setpoint(lin_targets[0, 0])
+        lin_pids[1].set_setpoint(lin_targets[1, 0])
+        lin_pids[2].set_setpoint(lin_targets[2, 0])
+        # rot_pids, lin_pids = update_setpoints(target_cheoreography, target_index, rot_pids, lin_pids)
+        print(f"stab_counter: {stab_counter}, target_index: {target_index}")
         real_time = time * delta_t
         changed_setpoint = False
         if time % 20 == 0:
             changed_setpoint = True
 
         if changed_setpoint:
-            dh.new_setpoints(np.array([[roll_target, pitch_target, yaw_target]]).T, np.array([[x_target, y_target, z_target]]).T)
+            dh.new_setpoints(rot_targets, lin_targets)
             
         try:
             sleep(0.1)
@@ -152,8 +189,8 @@ if __name__ == "__main__":
         # yaw_world, pid_outputs = quadcopter.translate_rotation_to_global(drone_angle, pid_outputs)
 
         # new Setpoint
-        rot_pids[0].set_setpoint(-pid_outputs[4])
-        rot_pids[1].set_setpoint(pid_outputs[3])
+        # rot_pids[0].set_setpoint(-pid_outputs[4])
+        # rot_pids[1].set_setpoint(pid_outputs[3])
 
         # if np.abs(pid_outputs[3]) < 0.1 and np.abs(pid_outputs[4]) < 0.1:
         #     yaw_target = np.arctan(y_target / x_target)
