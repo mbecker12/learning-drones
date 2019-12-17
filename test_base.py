@@ -32,16 +32,18 @@ if __name__ == "__main__":
     # initialize drone, choose starting position
     initial_thrust = np.array([[0, 0, 0, 0]]).T
     initial_wind_speed = np.array([[0.0, 0.0, 0.0]]).T
-    initial_angle = np.array([[0, 30, 0]]).T * np.pi / 180
+    initial_angle = np.array([[0, 0, 0]]).T * np.pi / 180
     initial_angle_vel = np.array([[0, 0, 0]]).T
     initial_pos = np.array([[0.0, 0.0, 10.0]]).T
     initial_vel = np.array([[0.0, 0.0, 0.0]]).T
     delta_t = 0.01
     timesteps = 5000
 
-    x_target = 25
+    x_target = 5
     y_target = 0
     z_target = 10
+    rot_outputs = np.array([[0.0, 0.0, 0.0]]).T * np.pi / 180
+    lin_outputs = np.array([[x_target, y_target, z_target]]).T
     # Initialize Drone Hardware
     dh = DataHandler(parentfolder="results", visualize=visualize, n_servers=n_servers, port=port)
     sensors = [Sensor(delta_t, initial_pos[i, 0], initial_vel[i, 0]) for i in range(3)]
@@ -54,10 +56,10 @@ if __name__ == "__main__":
     ]
 
     lin_pids = [
-        PID(kp=1.0, ki=0.0, kd=0.9, timeStep=delta_t, setValue=x_target, integralRange=2, calculateFlag="rangeExit",
-            outputLimitRange=[-1.57, 1.57]),
-        PID(kp=1.5, ki=0.0, kd=0.3, timeStep=delta_t, setValue=y_target, integralRange=2, calculateFlag="rangeExit",
-            outputLimitRange=[-1.57, 1.57]),
+        PID(kp=1.0, ki=0.0, kd=0.5, timeStep=delta_t, setValue=x_target, integralRange=2, calculateFlag="rangeExit",
+            outputLimitRange=[-np.pi/3, np.pi/3]),
+        PID(kp=1.0, ki=0.0, kd=0.5, timeStep=delta_t, setValue=y_target, integralRange=2, calculateFlag="rangeExit",
+            outputLimitRange=[-np.pi/3, np.pi/3]),
         PID(kp=1.5, ki=0.0, kd=0.3, timeStep=delta_t, setValue=z_target, integralRange=2, calculateFlag="rangeExit")
     ]
     
@@ -100,16 +102,17 @@ if __name__ == "__main__":
         real_time = time * delta_t
         sp_roll = 0
         sp = 00 * np.pi / 180
-        if time < 5:
+        # if time < 5:
+        #     changed_setpoint = True
+        # else:
+        changed_setpoint = False
+        if time % 10 == 0:
             changed_setpoint = True
-        else:
-            changed_setpoint = False
-
         if changed_setpoint:
             dh.new_setpoints(np.array([[sp_roll, sp, 0]]).T, np.array([[x_target, y_target, z_target]]).T)
             
         try:
-            sleep(0.05)
+            sleep(0.1)
         except KeyboardInterrupt:
             dh.finish()
 
@@ -136,26 +139,34 @@ if __name__ == "__main__":
         pid_outputs = np.zeros([6, 1])
         # update linear
         lin_inputs = lab_pos
-        lin_outputs = [pid.calculate(lin_inputs[i, 0]) for i, pid in enumerate(lin_pids)]
+        lin_outputs = np.array([[pid.calculate(lin_inputs[i, 0]) for i, pid in enumerate(lin_pids)]]).T
 
         # transform
-        yaw_world, pid_outputs = quadcopter.translate_rotation_to_global(drone_angle, lin_outputs)
+        # print("rot_outputs: ", rot_outputs)
+        # print("lin_outputs: ", lin_outputs)
+        pid_outputs[0:3] = rot_outputs
+        pid_outputs[3:6] = lin_outputs
+        # pid_outputs = np.concatenate([rot_outputs, lin_outputs])
+        yaw_world, pid_outputs = quadcopter.translate_rotation_to_global(drone_angle, pid_outputs)
 
         # new Setpoint
-        rot_pids[0].set_setpoint()
-        rot_pids[1].set_setpoint()
+        rot_pids[0].set_setpoint(pid_outputs[4])
+        rot_pids[1].set_setpoint(pid_outputs[3])
+        print(f"pid_outputs: {pid_outputs}")
 
         # update rotational
         rot_inputs = drone_angle
-        rot_outputs = [pid.calculate(rot_inputs[i, 0]) for i, pid in enumerate(rot_pids)]
-        print("rot_outputs: ", rot_outputs)
-        print("lin_outputs: ", lin_outputs)
-        delta_x = lin_outputs[0]
-        delta_z = lin_outputs[2]
+        rot_outputs = np.array([[pid.calculate(rot_inputs[i, 0]) for i, pid in enumerate(rot_pids)]]).T
+        # print("rot_outputs: ", rot_outputs)
+        # print("lin_outputs: ", lin_outputs)
+        pid_outputs[0:3] = rot_outputs
+        pid_outputs[3:6] = lin_outputs
+        print(f"pid_outputs: {pid_outputs}")
 
-        thrust = quadcopter.calculate_motor_thrust(np.concatenate([[rot_outputs], [lin_outputs]], axis=1).T, drone_angle)
+        thrust = quadcopter.calculate_motor_thrust(pid_outputs, drone_angle)
+        # thrust = quadcopter.calculate_motor_thrust(np.concatenate([[rot_outputs], [lin_outputs]], axis=1).T, drone_angle)
         # thrust = quadcopter.control_thrust(
-        #     rot_outputs, drone_angle[0, 0], drone_angle[1, 0], drone_angle[2, 0], delta_z, delta_x=delta_x)
+        #     rot_outputs, drone_angle[0, 0], drone_angle[1, 0], drone_angle[2, 0], pid_outputs[5, 0], delta_x=pid_outputs[3, 0])
 
         dh.new_data(
             time=time + delta_t,
@@ -163,7 +174,7 @@ if __name__ == "__main__":
             translation=lab_pos,
             thrusters=thrust,
             wind=wind_speed,
-            pid=np.array([[*rot_outputs, *lin_outputs]]).T)
+            pid=pid_outputs)
 
         forces, moments = quadcopter.calculate_forces_and_moments(
             thrust=thrust,
