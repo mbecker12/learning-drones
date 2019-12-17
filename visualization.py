@@ -56,7 +56,6 @@ class Plotter:
         self.translation = np.zeros([n_last_states, 3], dtype=np.float32)
         self.wind = np.zeros([n_last_states, 2], dtype=np.float32)
 
-
         # setup socket
         self._open_socket(host, port)
 
@@ -96,11 +95,11 @@ class Plotter:
             self.wind_handle, = wind_plot.plot(0, 0, c='y')
 
             # init thruster plot
-            self.thruster_plot = self._setup_barplot(grid=grid, label="Thrusters", set_point=0)
+            self.thruster_plot = self._setup_barplot(grid=grid, label="Thrusters")
             self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
 
             # add setpoint handler to dictionary
-            self.setpoint_handler.update({"roll": roll_sp, "pitch": pitch_sp, "yaw":yaw_sp})
+            self.setpoint_handler.update({"roll": roll_sp, "pitch": pitch_sp, "yaw": yaw_sp})
             self.setpoint_handler.update({"roll": self.roll_plot, "pitch": pitch_plot, "yaw":yaw_plot})
 
             plt.draw()
@@ -116,18 +115,21 @@ class Plotter:
             grid = self.figure.add_gridspec(4, 4)
 
             # def wind arrow properties
-            self.arrow_center = np.array([75, -75])
-            self.arrow_length = 20
+            plot_size = 100
+            self.arrow_center = np.array([plot_size*0.8, -plot_size*0.8])
+            self.arrow_length = plot_size/5
 
             # init gridplot with the arrows and plots on top
             self.plane_plot, self.wind_text, self.setpoint_xy = self._setup_gridplot(grid=grid, target=(90, 80),
-                                                                                     size=50)
+                                                                                     size=plot_size)
             xy = (60, -75)
             dxy = (20, 0)
-            self.wind_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='y', head_width=6, width=2,
-                                                           head_starts_at_zero=True)
-            self.direction_arrow_handle = self.plane_plot.arrow(0, 0, 1, 0, color='g', head_width=4, width=2,
-                                                                head_starts_at_zero=True)
+            self.wind_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='y', head_width=int(plot_size/12),
+                                                           width=2, head_starts_at_zero=True)
+            # TODO: fix arrow direction
+            # points in y-direction at the moment
+            self.direction_arrow_handle = self.plane_plot.arrow(0, 0, 1, 0, color='g', head_width=int(plot_size/15),
+                                                                width=2, head_starts_at_zero=True)
             self.position_handle = self.plane_plot.scatter(0, 0, c='g')
             self.position_history_handle, = self.plane_plot.plot(self.translation[:, 0], self.translation[:, 1], c='r',
                                                                  alpha=0.5)
@@ -139,7 +141,7 @@ class Plotter:
             self.height_handle, = height_plot.plot(0, 0, c='b')
 
             # init thruster plot
-            self.thruster_plot = self._setup_barplot(grid=grid, label="Thrusters", set_point=0)
+            self.thruster_plot = self._setup_barplot(grid=grid, label="Thrusters")
             self.thruster_handle = self.thruster_plot.bar([0.5, 1.5, 2.5, 3.5], [0.0, 0.0, 0.0, 0.0], color='b')
 
             # add setpoint handler to dictionary
@@ -154,10 +156,10 @@ class Plotter:
     def loop(self, *args):
         try:
             data = self.socket.recv(1024)
-            # received = "time: 60.01 roll: 0.5236 pitch: 0.0000 yaw: 0.0000 x: 10.0 y: 9.13156979727745 z:
-            # 8.436974647712704 t_1: 0.0 t_2: 0.0 t_3: 0.0 t_4: 0.0 w_x: 1.0 w_y: 0.0 w_z: 0.0\n"
+            # received = "time: 60.01 roll: 0.5236 pitch: 0.0000 yaw: 0.0000 x: 10.0 y: 9.13156979727745 z: " \
+            #            "8.436974647712704 t_1: 0.0 t_2: 0.0 t_3: 0.0 t_4: 0.0 w_x: 1.0 w_y: 0.0 w_z: 0.0\n"
             # received = "SETPOINTS roll: 90 pitch: 40 yaw: -30 x: 20 y: -30 z: 50\n"
-            received =  data.decode()
+            received = data.decode()
             if printouts: print("[INFO] Message received: ", received)
             if 'quit' in received:
                 self.socket.close()
@@ -198,6 +200,7 @@ class Plotter:
         ax.set(xticklabels=['T1', 'T2', 'T3', 'T4'])
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
+        # ax.axhline(set_point, c='r', alpha=0.7)
         ax.axis([0, 4, 0, 101])
         return ax
 
@@ -218,10 +221,11 @@ class Plotter:
         # setpoint
         target_point = ax.scatter(*target, c='r')
         # axis limit
-        ax.axis([-size -1, size + 1, -size - 1, size + 1])
+        ax.axis([-size - 1, size + 1, -size - 1, size + 1])
         circ = plt.Circle(tuple(self.arrow_center), self.arrow_length / 2, fill=False)
         ax.add_artist(circ)
-        texter = ax.text(55, -60, "Windspeed: 0 m/s")
+        texter = ax.text(self.arrow_center[0] - self.arrow_length, self.arrow_center[1] + self.arrow_length,
+                         "Windspeed: 0 m/s")
 
         return ax, texter, target_point
 
@@ -286,8 +290,7 @@ class Plotter:
         # set position
         self.direction_arrow_handle.remove()
         xy = (self.translation[-1, 0], self.translation[-1, 1])
-        dxy = (np.sin(self.rotation[-1, 2] * np.pi/180) * self.arrow_length/2, np.cos(self.rotation[-1, 2] * np.pi/180)
-               * self.arrow_length/2)
+        dxy = (np.sin(self.rotation[-1, 2]) * self.arrow_length/2, np.cos(self.rotation[-1, 2]) * self.arrow_length/2)
         self.direction_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='g', head_width=6, width=2)
         self.position_handle.set_offsets(self.translation[-1, :2])
         self.position_history_handle.set_data(self.translation[:, 0], self.translation[:, 1])
