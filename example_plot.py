@@ -5,12 +5,12 @@ folder_name = "results/"
 
 
 #loading Data
-rotation=np.load('example-results/rotation.npy')
-setpoints=np.load('example-results/setpoints.npy')
-time=np.load('example-results/time.npy')
-translation=np.load('example-results/translation.npy')
+rotation=np.load('results/17_12_2019_21_44_39/rotation.npy')
+setpoints=np.load('results/17_12_2019_21_44_39/setpoints.npy')
+time=np.load('results/17_12_2019_21_44_39/time.npy')
+translation=np.load('results/17_12_2019_21_44_39/translation.npy')
 # wind=np.load('example-results/wind.npy')
-pid=np.load('example-results/pid.npy')
+pid=np.load('results/17_12_2019_21_44_39/pid.npy')
 
 #subplots
 fig,(ax1,ax2,ax3)=plt.subplots(3,1)
