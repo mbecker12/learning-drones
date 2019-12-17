@@ -72,9 +72,9 @@ def translational_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     :return: translational matrix
     """
 
-    T = np.array([[1, np.sin(roll) * np.tan(pitch),  np.cos(roll) * np.tan(pitch)],
-                  [0, np.cos(roll)                , -np.sin(roll)],
-                  [0, np.sin(roll) / np.cos(pitch),  np.cos(roll) / np.cos(pitch)]], dtype=np.float32)
+    T = np.array([[1, np.sin(roll) * np.tan(pitch), np.cos(roll) * np.tan(pitch)],
+                  [0, np.cos(roll)               , -np.sin(roll)],
+                  [0, np.sin(roll) / np.cos(pitch), np.cos(roll) / np.cos(pitch)]], dtype=np.float32)
 
     return T
 
@@ -84,7 +84,7 @@ class QuadcopterPhysics:
     Class to calculate the forces and moments of the quadcopter based on the physical parameters
     Simplifications: - Direct control of motor thrust
                      - Direct resulting moment of motor thrust
-                     - wind only in x_y_plane
+                     - wind only from positive y-direction to negative y-direction
     """
     def __init__(self, mass_center: float, mass_motor: float,
                  radius_motor_center: float, I_x: float, I_y: float, I_z: float,
@@ -122,7 +122,7 @@ class QuadcopterPhysics:
         :return: 3 rows 1 column each
         """
         self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
-
+        print(f"rotation matrix: {self.Rot}")
         # motor forces
         T = thrust * self.c_f
         R = thrust * self.c_m
@@ -148,7 +148,8 @@ class QuadcopterPhysics:
 
         if lin_acc_drone_2_lab:
             lin_acc = np.dot(self.Rot.T, lin_acc)
-            # rot_acc = np.dot(self.Rot.T, rot_acc)
+            Tr = translational_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
+            rot_acc = np.dot(Tr, rot_acc)
 
         return lin_acc, rot_acc
 
@@ -158,8 +159,13 @@ class QuadcopterPhysics:
         :param rotation [roll, pitch, yaw]
         :return: 4 rows 1 column
         """
-        # print(f"pid_outputs: {pid_outputs.T}")
+        # TODO: linear PIDs should be able to dictate new rotation
+        # in order to create thrust in desired direction
+
         self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
+        
+        # desired_translation = pid_outputs[3, 0] * 0.5 * VEC_PITCH + \
+        #     pid_outputs[4, 0] * 0.5 * VEC_ROLL
 
         desired_rotation = self.angle_control_to_thrust.dot(pid_outputs[:3])
 
@@ -185,10 +191,11 @@ class QuadcopterPhysics:
         """
         :param rotation [roll, pitch, yaw]
         :param pid_outputs
-        :return: yaw_world for plotting, adapted pid_outputs 6 rows 1 column
+        :return: yaw_world for plotting, adapted pid_outputs 6 rows 1 column (3 rotation, 3 linear)
         """
         self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
-        x_w = self.Rot[:, 0]
+        
+        x_w = self.Rot[0, :]
         p = x_w[:2]
         x_axes = np.array([1, 0])
 
@@ -196,7 +203,7 @@ class QuadcopterPhysics:
         second = p.dot(x_axes)
         yaw_world = np.arctan2(first, second)
 
-        x_y_changed = rotation_matrix_2d(yaw_world).dot(pid_outputs[3:5])
+        x_y_changed = rotation_matrix_2d(yaw_world).T.dot(pid_outputs[3:5])
         changed_pid_outputs = pid_outputs.copy()
         changed_pid_outputs[3:5] = x_y_changed
 
@@ -270,10 +277,10 @@ class QuadcopterPhysics:
                        yaw: float,
                        delta_z: float,
                        delta_x: float = 0.0,
+                       delta_y: float = 0.0,
                        threshold: float = 0.0,
                        limit_range: list = [-1, 1]) -> np.ndarray:
         """
-        DEPRECATED
         From the PID outputs, calculate useful thrust levels for all
         four rotors.
         :param pid_outputs: outputs of three pid
@@ -286,11 +293,11 @@ class QuadcopterPhysics:
         self.Rot = rotation_matrix(roll, pitch, yaw)
 
         desired_pitch = delta_x * 0.5 * VEC_PITCH
-        desired_roll = 0.0
+        desired_roll = delta_y * 0.5 * VEC_ROLL
 
-        desired_roll += pid_outputs[0] * VEC_ROLL
-        desired_pitch += pid_outputs[1] * VEC_PITCH
-        desired_yaw = pid_outputs[2] * VEC_YAW
+        desired_roll -= pid_outputs[0, 0] * VEC_ROLL
+        desired_pitch += pid_outputs[1, 0] * VEC_PITCH
+        desired_yaw = pid_outputs[2, 0] * VEC_YAW
         # print(f"desired rotational thrust: {np.array(desired_roll + desired_pitch + desired_yaw)}")
         base_thrust = self.G / (4 * self.c_f) + delta_z
         # print(f"self.G: {self.G}")
@@ -307,51 +314,39 @@ class QuadcopterPhysics:
         # print(f"thrust: {thrust}")
         thrust[thrust > 1] = 1
         thrust[thrust < 0] = 0
-        # thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
-        # thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
-
+        
         # print("base_thrust:", base_thrust_vec)
         # print(f"ratio: {ratio}")
         thrust += np.array(desired_roll + desired_pitch + desired_yaw)
         # print(f"thrust: {thrust}")
         thrust[thrust > 1] = 1
         thrust[thrust < 0] = 0
-        # thrust = np.where(thrust > 1, [[1, 1, 1, 1]], thrust)
-        # thrust = np.where(thrust < 0, [[0, 0, 0, 0]], thrust)
+        
         for th in thrust[0]:
             assert(0 <= th <= 1)
         return thrust
 
 
 if __name__ == "__main__":
-    """
-            .-.      .-.
-           | 0 |    | 1 |
-            'T' ____ 'T'
-                 HH
-             _  ____  _
-           | 3 |    | 2 |
-            ' '      ' '
-
-    """
     from parameters import *
     qc = QuadcopterPhysics(mass_center=mass_center, mass_motor=mass_motor, radius_motor_center=radius_motor_center,
                            I_x=I_x, I_y=I_y, I_z=I_z,
                            coef_force=coef_force, coef_moment=coef_moment, coef_wind=coef_wind,
                            gravity=gravity, mass_payload=mass_payload, x_payload=x_payload, y_payload=y_payload)
-    initial_thrust = np.array([[0.1, 0.1, 0.1, 0.1]])
-    roll, pitch, yaw = 0, 0, 0
-    rotation = np.array([[roll, pitch, yaw]]).T * np.pi/180
+    t = np.array([[0.1, 0.1, 0.1, 0.1]])
+    roll, pitch, yaw = 45 * 3.14159/180, 30 * 3.14159/180, 45 * 3.14159/180
     wind = np.array([[0, 0, 0]])
-    pid = np.array([[1.0, 1.0, 1.0, 0.0, 0.5, 0.0]], dtype=np.float32).T
-
-    thrust_old_pid = qc.calculate_motor_thrust(rotation=rotation, pid_outputs=pid)
-    print("Old Thrust: ", thrust_old_pid.T)
-
-    angle, pid_new = qc.translate_rotation_to_global(rotation=rotation, pid_outputs=pid)
-    # print("angle: {:.2f}, x: {:.2f}, y: {:.2f}".format(angle*180/3.14159, pid_new[3, 0], pid_new[4, 0]))
-
-    thrust_new_pid = qc.calculate_motor_thrust(rotation=rotation, pid_outputs=pid_new)
-    print("New Thrust: ", thrust_new_pid.T)
-
     # print(qc.calculate_accelerations(rotation=np.array([[roll, pitch, yaw]]).T, wind_speed=wind.T, thrust=t.T, lin_acc_drone_2_lab=False))
+    f, m = qc.calculate_forces_and_moments(thrust=t, roll=roll, pitch=pitch, yaw=yaw, wind_speed=wind)
+    # print(qc.convert_to_acceleration(f, m))
+    # print(f)
+    # print(m)
+
+    pid = np.array([[0.0, 0.0, 0.0, 1, 0.0, -0.2]], dtype=np.float32).T
+    t = qc.calculate_motor_thrust(rotation=np.array([[roll, pitch, yaw]]).T, pid_outputs=pid)
+    # print(t)
+    t = qc.control_thrust(roll=roll, pitch=pitch, yaw=yaw, pid_outputs=pid[:3], delta_z=pid[5, 0])
+    # print(t)
+
+    angle, pid_new = qc.translate_rotation_to_global(rotation=np.array([[roll, pitch, yaw]]).T, pid_outputs=pid)
+    print("angle: {:.2f}, x: {:.2f}, y: {:.2f}".format(angle*180/3.14159, pid_new[3, 0], pid_new[4, 0]))
