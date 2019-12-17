@@ -24,7 +24,7 @@ delta_time = 0.05  # s
 
 # COEFFICIENTS
 # TODO: force per motor or total force?
-coef_force = 3  # N
+coef_force = 5  # N # 4 * c_f ~= mass_total * 2
 coef_moment = 0.5  # N
 
 # ENVIRONMENT
