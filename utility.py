@@ -38,7 +38,6 @@ def stability_check(setpoints: np.ndarray, current_points: np.ndarray, **targets
     return stability
 
 
-<<<<<<< HEAD
 def check_and_count_stability(stab, stab_time_max, stab_counter, target_index):
     if stab:
         stab_counter += 1
@@ -65,8 +64,6 @@ def update_setpoints(target_cheoreography, target_index, rot_pids, lin_pids):
     return rot_pids, lin_pids
 
 
-=======
->>>>>>> d63489ee842ee0739f141fc85e5ad38a07fd1326
 if __name__ == "__main__":
     setp = np.array([[10, 20, 30, 40, 50, 60]]).T
     current = np.array([[20, 30, 40, 50, 60, 70]]).T
