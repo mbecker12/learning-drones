@@ -155,12 +155,6 @@ axes.SetYAxisLabelText("")
 axes.SetZAxisLabelText("")
 
 # target
-# targetActor = vtk.vtkAxesActor()
-# targetActor.SetTotalLength(20, 20, 20)
-# targetActor.SetXAxisLabelText("")
-# targetActor.SetYAxisLabelText("")
-# targetActor.SetZAxisLabelText("")
-
 targetActor = vtk.vtkActor()
 targetActor.SetMapper(droneMapper)
 targetActor.GetProperty().SetColor(0.0, 0.0, 1.0)

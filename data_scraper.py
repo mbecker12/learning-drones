@@ -232,12 +232,12 @@ if __name__ == "__main__":
     roll, pitch, yaw, x, y, z = [np.random.randint(-50, 50) for i in range(6)]
     trans = np.array([[x, y, z]])
     rot = np.array([[roll, pitch, yaw]]) * np.pi/180
-    for t in range(50):
+    for t in range(500):
         rot += np.random.randint(-10, 10, [1, 3]) * np.pi/180
         thrust = np.random.random([1, 4])
         w = np.random.randint(-10, 10, [1, 3])
 
-        dh.new_data(time=t, rotation=rot.T,
+        dh.new_data(time=t*0.1, rotation=rot.T,
                     translation=trans.T,
                     thrusters=thrust.T, wind=w.T, pid=np.array([[0.5, 0.8, 20, 0, 0, 0]]).T)
         tm.sleep(0.1)
