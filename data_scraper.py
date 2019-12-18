@@ -221,7 +221,8 @@ class DataHandler:
                                   self.thrusters, self.wind, self.pid, self.setpoints], axis=1)
         np.savetxt(self.dir_name + "Results.csv", results, delimiter=",",
                    header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, Wind X, Wind Y,'
-                          ' PID Roll, PID Pitch, PID Yaw, PID X, PID Y, PID Z, Set Roll, Set Pitch, Set Yaw, Set X, Set Y, Set Z')
+                          ' PID Roll, PID Pitch, PID Yaw, PID X, PID Y, PID Z, Set Roll,'
+                          ' Set Pitch, Set Yaw, Set X, Set Y, Set Z')
 
         if self.printouts: print("[INFO] .csv saved")
 

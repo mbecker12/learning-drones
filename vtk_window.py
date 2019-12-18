@@ -18,6 +18,9 @@ import numpy as np
 import time as tm
 import sys
 
+set_floor = True
+show_target = True
+
 host = 'localhost'
 port = 65432
 if len(sys.argv) > 1:
@@ -183,15 +186,45 @@ targetActor.SetMapper(droneMapper)
 targetActor.GetProperty().SetColor(0.0, 0.0, 1.0)
 targetActor.GetProperty().SetOpacity(0.2)
 
+if set_floor:
+    print("floor here's your big show!")
+    # floor
+    # from vtk.util.misc import vtkGetDataRoot
+    # bmpReader = vtk.vtkBMPReader()
+    # bmpReader.SetFileName("pattern150.bmp")
+    #
+    # texture = vtk.vtkTexture()
+    # texture.SetInputConnection(bmpReader.GetOutputPort())
+    # texture.InterpolateOn()
+
+    floor = vtk.vtkCubeSource()
+    floor.SetBounds(-100.0, 100.0, -100.0, 100.0, -1.0, 0.0)
+    floor.SetCenter(0, 0, -10)
+
+    floorMapper = vtk.vtkPolyDataMapper()
+    floorMapper.SetInputConnection(floor.GetOutputPort())
+
+    floorActor = vtk.vtkActor()
+    floorActor.SetMapper(floorMapper)
+    floorActor.GetProperty().SetColor(0.8, 0.8, 0.8)
+    # floorActor.SetTexture(texture)
+    ren.AddActor(floorActor)
+
 # camera
 camera = vtk.vtkCamera()
-camera.SetPosition(200, 200, 200)
+if show_target:
+    camera.SetPosition(200, 200, 200)
+else:
+    camera.SetPosition(100, 100, 100)
+
 camera.SetRoll(-120)
 camera.SetFocalPoint(0, 0, 0)
 
 # assign actors to the renderer
 ren.AddActor(droneActor)
-ren.AddActor(targetActor)
+
+if show_target:
+    ren.AddActor(targetActor)
 ren.AddActor(axes)
 ren.SetActiveCamera(camera)
 
