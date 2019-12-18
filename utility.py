@@ -3,12 +3,10 @@ Created by Jan Schiffeler at 17.12.19
 jan.schiffeler[at]gmail.com
 
 Changed by
-
-
+Marvin Becker
 
 Python 3.
 Library version:
-
 
 """
 
@@ -36,6 +34,32 @@ def stability_check(setpoints: np.ndarray, current_points: np.ndarray, **targets
                 break
 
     return stability
+
+
+def check_and_count_stability(stab, stab_time_max, stab_counter, target_index):
+    if stab:
+        stab_counter += 1
+    else:
+        stab_counter = 0
+
+    if stab_counter >= stab_time_max:
+        target_index += 1
+        stab_counter = 0
+
+    return stab_counter, target_index
+
+
+def update_setpoints(target_cheoreography, target_index, rot_pids, lin_pids):
+    rot_targets = target_cheoreography[target_index][0:3]
+    lin_targets = target_cheoreography[target_index][3:6]
+    rot_pids[0].set_setpoint(rot_targets[0, 0])
+    rot_pids[1].set_setpoint(rot_targets[1, 0])
+    rot_pids[2].set_setpoint(rot_targets[2, 0])
+
+    lin_pids[0].set_setpoint(lin_targets[0, 0])
+    lin_pids[1].set_setpoint(lin_targets[1, 0])
+    lin_pids[2].set_setpoint(lin_targets[2, 0])
+    return rot_pids, lin_pids
 
 
 if __name__ == "__main__":

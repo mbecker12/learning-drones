@@ -228,6 +228,14 @@ class DataHandler:
 
 
 if __name__ == "__main__":
+    replay = True
+    if replay:
+        rotation = np.load('results/17_12_2019_21_44_39/rotation.npy')
+        setpoints = np.load('results/17_12_2019_21_44_39/setpoints.npy')
+        time = np.load('results/17_12_2019_21_44_39/time.npy')
+        translation = np.load('results/17_12_2019_21_44_39/translation.npy')
+
+
     import time as tm
     dh = DataHandler(parentfolder="results", visualize=True)
     roll, pitch, yaw, x, y, z = [np.random.randint(-50, 50) for i in range(6)]
