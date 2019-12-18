@@ -26,11 +26,15 @@ printouts = True
 
 
 class DroneHandle:
-    def __init__(self, actor: vtk.vtkActor, host: str, port: int, printouts: bool):
+    def __init__(self, actor: vtk.vtkActor, target: vtk.vtkActor, host: str, port: int, printouts: bool):
         self.roll = 0
         self.pitch = 0
         self.yaw = 0
+        self.r_target = 0
+        self.p_target = 0
+        self.y_target = 0
         self.actor = actor
+        self.target = target
         self.printouts = printouts
 
         # setup socket
@@ -46,12 +50,19 @@ class DroneHandle:
                 print("[INFO] Socket got closed")
                 quit()
             else:
-                roll, pitch, yaw = self._decode_message(message=received)
-                self._update_vtk(obj,
-                                 l_roll=self.roll, n_roll=roll,
-                                 l_pitch=self.pitch, n_pitch=pitch,
-                                 l_yaw=self.yaw, n_yaw=yaw)
-                self._store_new_data(roll=roll, pitch=pitch, yaw=yaw)
+                message_type, roll, pitch, yaw = self._decode_message(message=received)
+                if message_type:
+                    self._update_vtk(obj, act=self.actor,
+                                     l_roll=self.roll, n_roll=roll,
+                                     l_pitch=self.pitch, n_pitch=pitch,
+                                     l_yaw=self.yaw, n_yaw=yaw)
+                    self._store_new_data(store=True, roll=roll, pitch=pitch, yaw=yaw)
+                else:
+                    self._update_vtk(obj, act=self.target,
+                                     l_roll=self.r_target, n_roll=roll,
+                                     l_pitch=self.p_target, n_pitch=pitch,
+                                     l_yaw=self.y_target, n_yaw=yaw)
+                    self._store_new_data(store=False, roll=roll, pitch=pitch, yaw=yaw)
 
         except OSError:
             # This is ugly but this should not happen in the real tests
@@ -75,39 +86,45 @@ class DroneHandle:
         else:
             if self.printouts: print("[INFO] Connected")
 
-    def _store_new_data(self, roll: float, pitch: float, yaw: float):
-        self.roll = roll
-        self.pitch = pitch
-        self.yaw = yaw
+    def _store_new_data(self, store: bool, roll: float, pitch: float, yaw: float):
+        if store:
+            self.roll = roll
+            self.pitch = pitch
+            self.yaw = yaw
+        else:
+            self.r_target = roll
+            self.p_target = pitch
+            self.y_target = yaw
 
     def _decode_message(self, message: str):
         meaning = message.split(" ")
         if meaning[0] == "SETPOINTS":
-            return self.roll, self.pitch, self.yaw
+            roll, pitch, yaw, x, y, z = [float(meaning[i]) for i in range(2, len(meaning), 2)]
+            return False, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi
         try:
             time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
                 [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
-            return roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi
+            return True, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi
         except ValueError:
             if self.printouts: print("[ERROR] Couldn't decode message")
-            return self.roll, self.pitch, self.yaw
+            return True, self.roll, self.pitch, self.yaw
 
-    def _update_vtk(self, obj, l_roll: float, l_pitch: float, l_yaw: float,
+    def _update_vtk(self, obj, act: vtk.vtkActor, l_roll: float, l_pitch: float, l_yaw: float,
                     n_roll: float, n_pitch: float, n_yaw: float):
         # undo last rotation
-        self.actor.RotateZ(-l_yaw)
-        self.actor.RotateY(-l_pitch)
-        self.actor.RotateX(-l_roll)
+        act.RotateZ(-l_yaw)
+        act.RotateY(-l_pitch)
+        act.RotateX(-l_roll)
         # do new rotation
-        self.actor.RotateX(n_roll)
-        self.actor.RotateY(n_pitch)
-        self.actor.RotateZ(n_yaw)
+        act.RotateX(n_roll)
+        act.RotateY(n_pitch)
+        act.RotateZ(n_yaw)
         obj.GetRenderWindow().Render()
 
 
 # create a rendering window and renderer
 ren = vtk.vtkRenderer()
-ren.SetBackground(0.0, 0.0, 0.0)
+ren.SetBackground(1.0, 1.0, 1.0)
 
 renWin = vtk.vtkRenderWindow()
 renWin.SetSize(750, 750)
@@ -137,14 +154,27 @@ axes.SetXAxisLabelText("")
 axes.SetYAxisLabelText("")
 axes.SetZAxisLabelText("")
 
+# target
+# targetActor = vtk.vtkAxesActor()
+# targetActor.SetTotalLength(20, 20, 20)
+# targetActor.SetXAxisLabelText("")
+# targetActor.SetYAxisLabelText("")
+# targetActor.SetZAxisLabelText("")
+
+targetActor = vtk.vtkActor()
+targetActor.SetMapper(droneMapper)
+targetActor.GetProperty().SetColor(0.0, 0.0, 1.0)
+targetActor.GetProperty().SetOpacity(0.2)
+
 # camera
 camera = vtk.vtkCamera()
 camera.SetPosition(100, 100, 100)
 camera.SetRoll(-120)
 camera.SetFocalPoint(0, 0, 0)
 
-# assign actor to the renderer
+# assign actors to the renderer
 ren.AddActor(droneActor)
+ren.AddActor(targetActor)
 ren.AddActor(axes)
 ren.SetActiveCamera(camera)
 
@@ -153,7 +183,7 @@ renWin.Render()
 
 iren.Initialize()
 
-dh = DroneHandle(actor=droneActor, host=host, port=port, printouts=printouts)
+dh = DroneHandle(actor=droneActor, target=targetActor, host=host, port=port, printouts=printouts)
 
 iren.AddObserver('TimerEvent', dh.animate)
 iren.CreateRepeatingTimer(0)

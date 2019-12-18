@@ -115,14 +115,13 @@ class DataHandler:
         message += "x: {} y: {} z: {}\n".format(*translation.T[0])
         if self.printouts: print("[INFO] Message send: ", message)
         if self.visualize:
-            # for c in self.conn:
-            # we know visualisazion gets connected first! TODO Greet message between the 3
-            try:
-                self.conn[0].sendall(message.encode())
-            except BrokenPipeError:
-                # if one connection fails save the progress and terminate
-                print("[ERROR] One connection has been disconnected! Saving and closing...")
-                self.finish()
+            for c in self.conn:
+                try:
+                    c.sendall(message.encode())
+                except BrokenPipeError:
+                    # if one connection fails save the progress and terminate
+                    print("[ERROR] One connection has been disconnected! Saving and closing...")
+                    self.finish()
         trans_rot = np.concatenate([rotation.T, translation.T], axis=1)
         setpoints = np.repeat(a=trans_rot, repeats=self.time.shape[0] - self.setpoints.shape[0], axis=0)
         self.setpoints = np.concatenate([self.setpoints, setpoints], axis=0)
@@ -189,10 +188,9 @@ class DataHandler:
     def _close_socket(self):
         for i in range(len(self.conn)):
             try:
-                print(i)
-
                 self.conn[i].sendall("quit".encode())
                 self.conn[i].close()
+                if self.printouts: print("[INFO] Connection ", i, " was closed")
             except BrokenPipeError:
                 print("[ERROR] One connection has been disconnected before closing!")
                 try:
@@ -230,11 +228,11 @@ class DataHandler:
 
 if __name__ == "__main__":
     import time as tm
-    dh = DataHandler(parentfolder="results", visualize=False)
+    dh = DataHandler(parentfolder="results", visualize=True)
     roll, pitch, yaw, x, y, z = [np.random.randint(-50, 50) for i in range(6)]
     trans = np.array([[x, y, z]])
     rot = np.array([[roll, pitch, yaw]]) * np.pi/180
-    for t in range(10):
+    for t in range(50):
         rot += np.random.randint(-10, 10, [1, 3]) * np.pi/180
         thrust = np.random.random([1, 4])
         w = np.random.randint(-10, 10, [1, 3])
