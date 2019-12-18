@@ -35,9 +35,9 @@ class DroneHandle:
         self.roll = 0
         self.pitch = 0
         self.yaw = 0
-        self.r_target = 0
-        self.p_target = 0
-        self.y_target = 0
+        self.roll_target = 0
+        self.pitch_target = 0
+        self.yaw_target = 0
 
         #translations
         self.x = 0
@@ -72,9 +72,9 @@ class DroneHandle:
                     self._store_new_data(store=True, roll=roll, pitch=pitch, yaw=yaw, x=x, y=y, z=z)
                 else:
                     self._update_vtk(obj, act=self.target,
-                                     l_roll=self.r_target, n_roll=roll,
-                                     l_pitch=self.p_target, n_pitch=pitch,
-                                     l_yaw=self.y_target, n_yaw=yaw, x=x, y=y, z=z)
+                                     l_roll=self.roll_target, n_roll=roll,
+                                     l_pitch=self.pitch_target, n_pitch=pitch,
+                                     l_yaw=self.yaw_target, n_yaw=yaw, x=x, y=y, z=z)
                     self._store_new_data(store=False, roll=roll, pitch=pitch, yaw=yaw, x=x, y=y, z=z)
 
         except OSError:
@@ -108,9 +108,9 @@ class DroneHandle:
             self.y = y
             self.z = z
         else:
-            self.r_target = roll
-            self.p_target = pitch
-            self.y_target = yaw
+            self.roll_target = roll
+            self.pitch_target = pitch
+            self.yaw_target = yaw
             self.x_target = x
             self.y_target = y
             self.z_target = z
@@ -123,7 +123,8 @@ class DroneHandle:
                 return False, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x * 5, y * 5, z * 5
             except ValueError:
                 if self.printouts: print("[ERROR] Couldn't decode message")
-                return True, self.r_target, self.p_target, self.y_target, self.x_target, self.y_target, self.z_target
+                return True, self.roll_target, self.pitch_target, self.yaw_target,\
+                    self.x_target, self.y_target, self.z_target
         else:
             try:
                 time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
@@ -211,9 +212,9 @@ if set_floor:
 camera = vtk.vtkCamera()
 if show_target:
     # camera.SetPosition(200, 200, 200)
-    camera.SetPosition(-300, -100, 400)
-    camera.SetRoll(75)
-    camera.SetFocalPoint(100, 100, 0)
+    camera.SetPosition(100, -300, 400)
+    camera.SetRoll(0)
+    camera.SetFocalPoint(100, 100, 50)
 else:
     camera.SetPosition(100, 100, 100)
     camera.SetRoll(-120)
