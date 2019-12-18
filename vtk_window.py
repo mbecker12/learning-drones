@@ -187,9 +187,6 @@ targetActor.GetProperty().SetColor(0.0, 0.0, 1.0)
 targetActor.GetProperty().SetOpacity(0.2)
 
 if set_floor:
-    print("floor here's your big show!")
-    # floor
-    # from vtk.util.misc import vtkGetDataRoot
     # bmpReader = vtk.vtkBMPReader()
     # bmpReader.SetFileName("pattern150.bmp")
     #
