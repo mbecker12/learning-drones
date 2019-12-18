@@ -262,13 +262,16 @@ if __name__ == "__main__":
             w[1, 0] = w_pre[1]
             # yes yes private, I dont tell anyone if you dont
             dh._send_message(time=time, rotation=rot.T, translation=trans.T, thrusters=thrust.T, wind=wind.T)
-            if np.array_equal(set_points, previous_setpoint):
+            if not np.array_equal(set_points, previous_setpoint):
+                set_trans[0, 0] = 0
+                set_trans[1, 0] = 0
                 dh.new_setpoints(translation=set_trans, rotation=set_rot)
+                print("New Setpoints: ", set_points.T)
 
             previous_setpoint = set_points.copy()
 
             # pre = set_rot.copy()
-            tm.sleep(0.1)
+            tm.sleep(0.5)
 
     else:
         dh = DataHandler(parentfolder="results", visualize=False)
