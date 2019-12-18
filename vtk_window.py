@@ -120,7 +120,7 @@ class DroneHandle:
         if meaning[0] == "SETPOINTS":
             try:
                 roll, pitch, yaw, x, y, z = [float(meaning[i]) for i in range(2, len(meaning), 2)]
-                return False, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x, y, z
+                return False, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x * 5, y * 5, z * 5
             except ValueError:
                 if self.printouts: print("[ERROR] Couldn't decode message")
                 return True, self.r_target, self.p_target, self.y_target, self.x_target, self.y_target, self.z_target
@@ -128,7 +128,7 @@ class DroneHandle:
             try:
                 time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
                     [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
-                return True, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x, y, z
+                return True, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x * 5, y * 5, z * 5
             except ValueError:
                 if self.printouts: print("[ERROR] Couldn't decode message")
                 return True, self.roll, self.pitch, self.yaw, self.x, self.y, self.z
@@ -153,7 +153,7 @@ ren = vtk.vtkRenderer()
 ren.SetBackground(1.0, 1.0, 1.0)
 
 renWin = vtk.vtkRenderWindow()
-renWin.SetSize(750, 750)
+renWin.SetSize(1650, 1350)
 # renWin.SetWindowName("Please give me my drone!")
 renWin.AddRenderer(ren)
 
@@ -195,7 +195,7 @@ if set_floor:
     # texture.InterpolateOn()
 
     floor = vtk.vtkCubeSource()
-    floor.SetBounds(-100.0, 100.0, -100.0, 100.0, -1.0, 0.0)
+    floor.SetBounds(-100.0, 400.0, -100.0, 400.0, -1.0, 0.0)
     floor.SetCenter(0, 0, -10)
 
     floorMapper = vtk.vtkPolyDataMapper()
@@ -210,12 +210,15 @@ if set_floor:
 # camera
 camera = vtk.vtkCamera()
 if show_target:
-    camera.SetPosition(200, 200, 200)
+    # camera.SetPosition(200, 200, 200)
+    camera.SetPosition(-300, -100, 400)
+    camera.SetRoll(75)
+    camera.SetFocalPoint(100, 100, 0)
 else:
     camera.SetPosition(100, 100, 100)
+    camera.SetRoll(-120)
+    camera.SetFocalPoint(0, 0, 0)
 
-camera.SetRoll(-120)
-camera.SetFocalPoint(0, 0, 0)
 
 # assign actors to the renderer
 ren.AddActor(droneActor)
@@ -229,6 +232,8 @@ ren.SetActiveCamera(camera)
 renWin.Render()
 
 iren.Initialize()
+iren.RemoveObservers('LeftButtonPressEvent')
+iren.RemoveObservers('RightButtonPressEvent')
 
 dh = DroneHandle(actor=droneActor, target=targetActor, host=host, port=port, printouts=printouts)
 

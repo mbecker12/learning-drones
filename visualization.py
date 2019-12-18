@@ -122,12 +122,11 @@ class Plotter:
             # init gridplot with the arrows and plots on top
             self.plane_plot, self.wind_text, self.setpoint_xy = self._setup_gridplot(grid=grid, target=(90, 80),
                                                                                      size=plot_size)
-            xy = (60, -75)
+            xy = (40, -55)
             dxy = (20, 0)
             self.wind_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='y', head_width=int(plot_size/12),
                                                            width=2, head_starts_at_zero=True)
-            # TODO: fix arrow direction
-            # points in y-direction at the moment
+
             self.direction_arrow_handle = self.plane_plot.arrow(0, 0, 1, 0, color='g', head_width=int(plot_size/15),
                                                                 width=2, head_starts_at_zero=True)
             self.position_handle = self.plane_plot.scatter(0, 0, c='g')
