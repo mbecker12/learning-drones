@@ -126,7 +126,6 @@ class DataHandler:
         setpoints = np.repeat(a=trans_rot, repeats=self.time.shape[0] - self.setpoints.shape[0], axis=0)
         self.setpoints = np.concatenate([self.setpoints, setpoints], axis=0)
 
-
     def finish(self):
         """
         Close sockets and save data to files
@@ -189,10 +188,9 @@ class DataHandler:
     def _close_socket(self):
         for i in range(len(self.conn)):
             try:
-                print(i)
-
                 self.conn[i].sendall("quit".encode())
                 self.conn[i].close()
+                if self.printouts: print("[INFO] Connection ", i, " was closed")
             except BrokenPipeError:
                 print("[ERROR] One connection has been disconnected before closing!")
                 try:
@@ -223,26 +221,72 @@ class DataHandler:
                                   self.thrusters, self.wind, self.pid, self.setpoints], axis=1)
         np.savetxt(self.dir_name + "Results.csv", results, delimiter=",",
                    header='Time, Roll, Pitch, Yaw, X, Y, Z, T1, T2, T3, T4, Wind X, Wind Y,'
-                          ' PID Roll, PID Pitch, PID Yaw, PID X, PID Y, PID Z, Set Roll, Set Pitch, Set Yaw, Set X, Set Y, Set Z')
+                          ' PID Roll, PID Pitch, PID Yaw, PID X, PID Y, PID Z, Set Roll,'
+                          ' Set Pitch, Set Yaw, Set X, Set Y, Set Z')
 
         if self.printouts: print("[INFO] .csv saved")
 
 
 if __name__ == "__main__":
-    import time as tm
-    dh = DataHandler(parentfolder="results", visualize=False)
-    roll, pitch, yaw, x, y, z = [np.random.randint(-50, 50) for i in range(6)]
-    trans = np.array([[x, y, z]])
-    rot = np.array([[roll, pitch, yaw]]) * np.pi/180
-    for t in range(10):
-        rot += np.random.randint(-10, 10, [1, 3]) * np.pi/180
-        thrust = np.random.random([1, 4])
-        w = np.random.randint(-10, 10, [1, 3])
+    replay = True
 
-        dh.new_data(time=t, rotation=rot.T,
-                    translation=trans.T,
-                    thrusters=thrust.T, wind=w.T, pid=np.array([[0.5, 0.8, 20, 0, 0, 0]]).T)
-        tm.sleep(0.1)
-        dh.new_setpoints(translation=trans.T, rotation=rot.T)
+    import time as tm
+
+    if replay:
+        dh = DataHandler(parentfolder="results", visualize=True, printouts=False)
+        dh.new_setpoints(translation=np.zeros([3, 1]), rotation=np.zeros([3, 1]))
+        for i in range(-20, 1, 1):
+            dh._send_message(time=i, rotation=np.zeros([1, 3]), translation=np.zeros([1, 3]),
+                             thrusters=np.zeros([1, 4]), wind=np.zeros([1, 3]))
+            tm.sleep(1)
+
+        time_mat = np.load('result/time.npy')
+        rotation = np.load('result/rotation.npy')
+        translation = np.load('result/translation.npy')
+        setpoints = np.load('result/setpoints.npy')
+        thruster = np.load('result/thrust_values.npy')
+        wind = np.load('result/wind.npy')
+        previous_setpoint = np.zeros([6, 1])
+
+        for t in range(rotation.shape[0]):
+            time = time_mat[t, 0]
+            rot = rotation[t, :][:, np.newaxis]
+            trans = translation[t, :][:, np.newaxis]
+            set_points = setpoints[t, :]
+            set_rot = set_points[:3][:, np.newaxis]
+            set_trans = set_points[3:6][:, np.newaxis]
+            thrust = thruster[t, :][:, np.newaxis]
+            w_pre = wind[t, :]
+            w = np.zeros([3, 1])
+            w[0, 0] = w_pre[0]
+            w[1, 0] = w_pre[1]
+            # yes yes private, I dont tell anyone if you dont
+            dh._send_message(time=time, rotation=rot.T, translation=trans.T, thrusters=thrust.T, wind=wind.T)
+            if not np.array_equal(set_points, previous_setpoint):
+                set_trans[0, 0] = 0
+                set_trans[1, 0] = 0
+                dh.new_setpoints(translation=set_trans, rotation=set_rot)
+                print("New Setpoints: ", set_points.T)
+
+            previous_setpoint = set_points.copy()
+
+            # pre = set_rot.copy()
+            tm.sleep(0.5)
+
+    else:
+        dh = DataHandler(parentfolder="results", visualize=False)
+        roll, pitch, yaw, x, y, z = [np.random.randint(-50, 50) for i in range(6)]
+        trans = np.array([[x, y, z]])
+        rot = np.array([[roll, pitch, yaw]]) * np.pi/180
+        for t in range(500):
+            rot += np.random.randint(-10, 10, [1, 3]) * np.pi/180
+            thrust = np.random.random([1, 4])
+            w = np.random.randint(-10, 10, [1, 3])
+
+            dh.new_data(time=t*0.1, rotation=rot.T,
+                        translation=trans.T,
+                        thrusters=thrust.T, wind=w.T, pid=np.array([[0.5, 0.8, 20, 0, 0, 0]]).T)
+            tm.sleep(0.1)
+            dh.new_setpoints(translation=trans.T, rotation=rot.T)
 
     dh.finish()

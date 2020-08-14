@@ -100,7 +100,7 @@ class Plotter:
 
             # add setpoint handler to dictionary
             self.setpoint_handler.update({"roll": roll_sp, "pitch": pitch_sp, "yaw": yaw_sp})
-            self.setpoint_handler.update({"roll": self.roll_plot, "pitch": pitch_plot, "yaw":yaw_plot})
+            self.plots.update({"roll": self.roll_plot, "pitch": pitch_plot, "yaw": yaw_plot})
 
             plt.draw()
 
@@ -122,12 +122,11 @@ class Plotter:
             # init gridplot with the arrows and plots on top
             self.plane_plot, self.wind_text, self.setpoint_xy = self._setup_gridplot(grid=grid, target=(90, 80),
                                                                                      size=plot_size)
-            xy = (60, -75)
+            xy = (40, -55)
             dxy = (20, 0)
             self.wind_arrow_handle = self.plane_plot.arrow(*xy, *dxy, color='y', head_width=int(plot_size/12),
                                                            width=2, head_starts_at_zero=True)
-            # TODO: fix arrow direction
-            # points in y-direction at the moment
+
             self.direction_arrow_handle = self.plane_plot.arrow(0, 0, 1, 0, color='g', head_width=int(plot_size/15),
                                                                 width=2, head_starts_at_zero=True)
             self.position_handle = self.plane_plot.scatter(0, 0, c='g')
@@ -312,7 +311,7 @@ class Plotter:
     def _arrow_position(self):
         try:
             wind = 1 / np.linalg.norm(self.wind[-1, :]) * self.wind[-1, :]
-        except ZeroDivisionError as err:
+        except ZeroDivisionError:
             wind = 0.0
 
         xy = (self.arrow_center - wind * self.arrow_length / 2 * 1.6)
@@ -343,7 +342,7 @@ class Plotter:
         if self.printouts: print("[INFO] Latest Message: " + msg)
         if meaning[0] == "SETPOINTS":
             roll, pitch, yaw, x, y, z = [float(meaning[i]) for i in range(2, len(meaning), 2)]
-            return False, (roll, pitch, yaw, z, (x, y))
+            return False, (roll * 180 / np.pi, pitch * 180 / np.pi, yaw * 180 / np.pi, z, (x, y))
         else:
             try:
                 time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, wind_x, wind_y, wind_z = \

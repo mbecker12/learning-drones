@@ -3,12 +3,10 @@ Created by Jan Schiffeler at 17.12.19
 jan.schiffeler[at]gmail.com
 
 Changed by
-
-
+Marvin Becker
 
 Python 3.
 Library version:
-
 
 """
 

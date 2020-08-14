@@ -18,6 +18,9 @@ import numpy as np
 import time as tm
 import sys
 
+set_floor = True
+show_target = True
+
 host = 'localhost'
 port = 65432
 if len(sys.argv) > 1:
@@ -26,11 +29,25 @@ printouts = True
 
 
 class DroneHandle:
-    def __init__(self, actor: vtk.vtkActor, host: str, port: int, printouts: bool):
+    def __init__(self, actor: vtk.vtkActor, target: vtk.vtkActor, host: str, port: int, printouts: bool):
+
+        # rotations
         self.roll = 0
         self.pitch = 0
         self.yaw = 0
+        self.roll_target = 0
+        self.pitch_target = 0
+        self.yaw_target = 0
+
+        #translations
+        self.x = 0
+        self.y = 0
+        self.z = 0
+        self.x_target = 0
+        self.y_target = 0
+        self.z_target = 0
         self.actor = actor
+        self.target = target
         self.printouts = printouts
 
         # setup socket
@@ -46,12 +63,19 @@ class DroneHandle:
                 print("[INFO] Socket got closed")
                 quit()
             else:
-                roll, pitch, yaw = self._decode_message(message=received)
-                self._update_vtk(obj,
-                                 l_roll=self.roll, n_roll=roll,
-                                 l_pitch=self.pitch, n_pitch=pitch,
-                                 l_yaw=self.yaw, n_yaw=yaw)
-                self._store_new_data(roll=roll, pitch=pitch, yaw=yaw)
+                message_type, roll, pitch, yaw, x, y, z = self._decode_message(message=received)
+                if message_type:
+                    self._update_vtk(obj, act=self.actor,
+                                     l_roll=self.roll, n_roll=roll,
+                                     l_pitch=self.pitch, n_pitch=pitch,
+                                     l_yaw=self.yaw, n_yaw=yaw, x=x, y=y, z=z)
+                    self._store_new_data(store=True, roll=roll, pitch=pitch, yaw=yaw, x=x, y=y, z=z)
+                else:
+                    self._update_vtk(obj, act=self.target,
+                                     l_roll=self.roll_target, n_roll=roll,
+                                     l_pitch=self.pitch_target, n_pitch=pitch,
+                                     l_yaw=self.yaw_target, n_yaw=yaw, x=x, y=y, z=z)
+                    self._store_new_data(store=False, roll=roll, pitch=pitch, yaw=yaw, x=x, y=y, z=z)
 
         except OSError:
             # This is ugly but this should not happen in the real tests
@@ -75,42 +99,62 @@ class DroneHandle:
         else:
             if self.printouts: print("[INFO] Connected")
 
-    def _store_new_data(self, roll: float, pitch: float, yaw: float):
-        self.roll = roll
-        self.pitch = pitch
-        self.yaw = yaw
+    def _store_new_data(self, store: bool, roll: float, pitch: float, yaw: float, x: float, y: float, z: float):
+        if store:
+            self.roll = roll
+            self.pitch = pitch
+            self.yaw = yaw
+            self.x = x
+            self.y = y
+            self.z = z
+        else:
+            self.roll_target = roll
+            self.pitch_target = pitch
+            self.yaw_target = yaw
+            self.x_target = x
+            self.y_target = y
+            self.z_target = z
 
     def _decode_message(self, message: str):
         meaning = message.split(" ")
         if meaning[0] == "SETPOINTS":
-            return self.roll, self.pitch, self.yaw
-        try:
-            time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
-                [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
-            return roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi
-        except ValueError:
-            if self.printouts: print("[ERROR] Couldn't decode message")
-            return 0, 0, 0
+            try:
+                roll, pitch, yaw, x, y, z = [float(meaning[i]) for i in range(2, len(meaning), 2)]
+                return False, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x * 5, y * 5, z * 5
+            except ValueError:
+                if self.printouts: print("[ERROR] Couldn't decode message")
+                return True, self.roll_target, self.pitch_target, self.yaw_target,\
+                    self.x_target, self.y_target, self.z_target
+        else:
+            try:
+                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
+                    [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
+                return True, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x * 5, y * 5, z * 5
+            except ValueError:
+                if self.printouts: print("[ERROR] Couldn't decode message")
+                return True, self.roll, self.pitch, self.yaw, self.x, self.y, self.z
 
-    def _update_vtk(self, obj, l_roll: float, l_pitch: float, l_yaw: float,
-                    n_roll: float, n_pitch: float, n_yaw: float):
+    def _update_vtk(self, obj, act: vtk.vtkActor, l_roll: float, l_pitch: float, l_yaw: float,
+                    n_roll: float, n_pitch: float, n_yaw: float, x: float, y: float, z: float):
         # undo last rotation
-        self.actor.RotateZ(-l_yaw)
-        self.actor.RotateY(-l_pitch)
-        self.actor.RotateX(-l_roll)
+        act.RotateZ(-l_yaw)
+        act.RotateY(-l_pitch)
+        act.RotateX(-l_roll)
         # do new rotation
-        self.actor.RotateX(n_roll)
-        self.actor.RotateY(n_pitch)
-        self.actor.RotateZ(n_yaw)
+        act.RotateX(n_roll)
+        act.RotateY(n_pitch)
+        act.RotateZ(n_yaw)
+
+        act.SetPosition(x, y, z)
         obj.GetRenderWindow().Render()
 
 
 # create a rendering window and renderer
 ren = vtk.vtkRenderer()
-ren.SetBackground(0.0, 0.0, 0.0)
+ren.SetBackground(1.0, 1.0, 1.0)
 
 renWin = vtk.vtkRenderWindow()
-renWin.SetSize(750, 750)
+renWin.SetSize(1650, 1350)
 # renWin.SetWindowName("Please give me my drone!")
 renWin.AddRenderer(ren)
 
@@ -137,14 +181,51 @@ axes.SetXAxisLabelText("")
 axes.SetYAxisLabelText("")
 axes.SetZAxisLabelText("")
 
+# target
+targetActor = vtk.vtkActor()
+targetActor.SetMapper(droneMapper)
+targetActor.GetProperty().SetColor(0.0, 0.0, 1.0)
+targetActor.GetProperty().SetOpacity(0.2)
+
+if set_floor:
+    # bmpReader = vtk.vtkBMPReader()
+    # bmpReader.SetFileName("pattern150.bmp")
+    #
+    # texture = vtk.vtkTexture()
+    # texture.SetInputConnection(bmpReader.GetOutputPort())
+    # texture.InterpolateOn()
+
+    floor = vtk.vtkCubeSource()
+    floor.SetBounds(-100.0, 400.0, -100.0, 400.0, -1.0, 0.0)
+    floor.SetCenter(0, 0, -10)
+
+    floorMapper = vtk.vtkPolyDataMapper()
+    floorMapper.SetInputConnection(floor.GetOutputPort())
+
+    floorActor = vtk.vtkActor()
+    floorActor.SetMapper(floorMapper)
+    floorActor.GetProperty().SetColor(0.8, 0.8, 0.8)
+    # floorActor.SetTexture(texture)
+    ren.AddActor(floorActor)
+
 # camera
 camera = vtk.vtkCamera()
-camera.SetPosition(100, 100, 100)
-camera.SetRoll(-120)
-camera.SetFocalPoint(0, 0, 0)
+if show_target:
+    # camera.SetPosition(200, 200, 200)
+    camera.SetPosition(100, -300, 400)
+    camera.SetRoll(0)
+    camera.SetFocalPoint(100, 100, 50)
+else:
+    camera.SetPosition(100, 100, 100)
+    camera.SetRoll(-120)
+    camera.SetFocalPoint(0, 0, 0)
 
-# assign actor to the renderer
+
+# assign actors to the renderer
 ren.AddActor(droneActor)
+
+if show_target:
+    ren.AddActor(targetActor)
 ren.AddActor(axes)
 ren.SetActiveCamera(camera)
 
@@ -152,8 +233,10 @@ ren.SetActiveCamera(camera)
 renWin.Render()
 
 iren.Initialize()
+iren.RemoveObservers('LeftButtonPressEvent')
+iren.RemoveObservers('RightButtonPressEvent')
 
-dh = DroneHandle(actor=droneActor, host=host, port=port, printouts=printouts)
+dh = DroneHandle(actor=droneActor, target=targetActor, host=host, port=port, printouts=printouts)
 
 iren.AddObserver('TimerEvent', dh.animate)
 iren.CreateRepeatingTimer(0)
