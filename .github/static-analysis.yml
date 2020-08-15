@@ -1,8 +1,9 @@
-stages:
-    - Static Analysis
-    - Unit Test
-  
+name: Static Analysis
+on : [push]
+
+jobs:
   pylint:
+    name: pylint
     stage: Static Analysis
     image: "python:3.8"
     before_script:
@@ -18,6 +19,7 @@ stages:
       - pylint --rcfile .pylintrc flight
   
   black:
+    name: pylint
     stage: Static Analysis
     image: "python:3.8"
     before_script:
