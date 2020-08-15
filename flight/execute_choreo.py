@@ -262,7 +262,7 @@ if __name__ == "__main__":
     xy_tolerance_radius = 1.0
     z_tolerance = 0.5
     timesteps = 3500
-    # sleep(2)
+    sleep(2)
     for time in range(timesteps):
         current = np.concatenate([drone_angle, lab_pos])
         targets = np.concatenate([rot_targets, lin_targets])
