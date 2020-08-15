@@ -62,22 +62,22 @@ def update_setpoints(target_cheoreography, target_index, rot_pids, lin_pids):
     return rot_pids, lin_pids
 
 
-if __name__ == "__main__":
-    setp = np.array([[10, 20, 30, 40, 50, 60]]).T
-    current = np.array([[20, 30, 40, 50, 60, 70]]).T
+# if __name__ == "__main__":
+#     setp = np.array([[10, 20, 30, 40, 50, 60]]).T
+#     current = np.array([[20, 30, 40, 50, 60, 70]]).T
 
-    stab = stability_check(setp, current, pitch=10.1, x_y=20)
-    print(stab)
+#     stab = stability_check(setp, current, pitch=10.1, x_y=20)
+#     print(stab)
 
-    timer = 0
-    setpoint_number = 0
-    for i in range(100):
-        if stability_check(setp, current, pitch=10.1, x_y=20):
-            timer += 1
-            if timer == 10:
-                setpoint_number += 1
-                timer = 0
-        else:
-            timer = 0
+#     timer = 0
+#     setpoint_number = 0
+#     for i in range(100):
+#         if stability_check(setp, current, pitch=10.1, x_y=20):
+#             timer += 1
+#             if timer == 10:
+#                 setpoint_number += 1
+#                 timer = 0
+#         else:
+#             timer = 0
 
-    print(setpoint_number)
+#     print(setpoint_number)

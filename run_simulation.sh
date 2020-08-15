@@ -10,7 +10,7 @@ paramset=$1
 visualize=1
 num_servers=1
 
-cmds[1]="pwd; cd $DRONE_DIR; export PYTHONPATH="$DRONE_DIR"; echo 'pythonpath: $PYTHONPATH'; python flight/execute_choreo.py $port $visualize $num_servers $paramset"
+cmds[1]="pwd; cd $DRONE_DIR; export PYTHONPATH="$DRONE_DIR"; python flight/collect_coins.py $port $visualize $num_servers $paramset"
 titles[1]="Server"
 
 cmds[2]="pwd; cd $DRONE_DIR; python visualization/visualization.py $port"

@@ -17,6 +17,7 @@ from drone.utility import *
 from drone.quadcopter.choose_paramset import *
 from drone.onboard_computer import PIDControlUNnit
 import sys
+from objects.coins import Coin
 
 
 mode = "translation"
@@ -260,6 +261,13 @@ if __name__ == "__main__":
         ]
     )
 
+    target_coins = [
+        Coin(np.asarray([[0.0, 0.0, 5.0]]).T, 1, value=1000),
+        Coin(np.asarray([[25.0, 25.0, 5.0]]).T, 1, value=1000),
+        Coin(np.asarray([[-10.0, 35.0, 5.0]]).T, 1, value=1000),
+        Coin(np.asarray([[0.0, 0.0, 5.0]]).T, 1, value=1000)
+    ]
+
     stab_counter = 0
     stab_time_max = 50
     target_index = 0
@@ -268,34 +276,30 @@ if __name__ == "__main__":
     xy_tolerance_radius = 1.0
     z_tolerance = 0.5
     timesteps = 3500
+    score = timesteps
     sleep(2)
     for time in range(timesteps):
+        score -= 1
         current = np.concatenate([drone_angle, lab_pos])
         targets = np.concatenate([rot_targets, lin_targets])
         radius = 2
-        stab = stability_check(
-            targets,
-            current,
-            roll=angle_tolerance,
-            pitch=angle_tolerance,
-            yaw=angle_tolerance,
-            x_y=xy_tolerance_radius,
-            z=z_tolerance,
-        )
-        # stab = stability_check(targets, current, x_y=xy_tolerance_radius, z=z_tolerance)
-        # print(f"stab: {stab}")
 
-        stab_counter, new_target_index = check_and_count_stability(
-            stab, stab_time_max, stab_counter, target_index
-        )
-        # if target_index == 1:
-        #     dh.finish()
-        #     sys.exit()
-        if new_target_index >= len(target_cheoreography):
+        collected_coin = target_coins[target_index].is_in_vicinity(lab_pos)
+        if collected_coin:
+            score += target_coins[target_index].value
+            new_target_index = target_index + 1
+            
+
+
+        if new_target_index >= len(target_coins):
+            print(f"Final Score: {score}, Paramset: {paramset_num}")
             dh.finish()
             sys.exit()
-        rot_targets = target_cheoreography[new_target_index][0:3]
-        lin_targets = target_cheoreography[new_target_index][3:6]
+
+        rot_targets = np.zeros((3, 1))
+        lin_targets = target_coins[new_target_index].position
+        # rot_targets = target_cheoreography[new_target_index][0:3]
+        # lin_targets = target_cheoreography[new_target_index][3:6]
         print(f"x_target: {lin_targets[-3]}")
         print(f"y_target: {lin_targets[-2]}")
         print(f"z_target: {lin_targets[-1]}")
@@ -307,10 +311,8 @@ if __name__ == "__main__":
             dh.new_setpoints(rot_targets, lin_targets)
             print(f"new_target_index: {new_target_index}, target_index: {target_index}")
             target_index = new_target_index
-        # dh.new_setpoints(rot_targets, lin_targets)
 
-        print(f"stab_counter: {stab_counter}, target_index: {target_index}")
-        print(f"delta_z: {lin_pids[-1].setValue}")
+        print(f"score: {score}, target_index: {target_index}")
         real_time = time * delta_t
         changed_setpoint = False
         if time % 10 == 0:

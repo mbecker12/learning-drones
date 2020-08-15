@@ -1,0 +1,9 @@
+bash run_simulation.sh 00
+bash run_simulation.sh 01
+bash run_simulation.sh 02
+bash run_simulation.sh 10
+bash run_simulation.sh 11
+bash run_simulation.sh 12
+bash run_simulation.sh 20
+bash run_simulation.sh 21
+bash run_simulation.sh 22
