@@ -12,18 +12,25 @@ import numpy as np
 
 if __name__ == "__main__":
 
-    t = PID(kp=2.5, ki=0, kd=0, timeStep=0.05, setValue=10, integralRange=4, calculateFlag="rangeExit",outputLimitRange=[0, 1])
+    t = PID(
+        kp=2.5,
+        ki=0,
+        kd=0,
+        timeStep=0.05,
+        setValue=10,
+        integralRange=4,
+        calculateFlag="rangeExit",
+        outputLimitRange=[0, 1],
+    )
 
-    x = np.arange(6,20,1)
+    x = np.arange(6, 20, 1)
     input = np.sin(x)
     out = []
     for o in input:
         out.append(t.calculate(o))
 
     plt.figure()
-    plt.plot(x,input)
-    plt.plot(x,out)
-    plt.legend(["input","output"])
+    plt.plot(x, input)
+    plt.plot(x, out)
+    plt.legend(["input", "output"])
     plt.show()
-
-

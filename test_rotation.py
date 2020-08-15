@@ -11,17 +11,17 @@ yaw = 45 * np.pi / 180
 Rot = rotation_matrix(roll, pitch, yaw)
 
 qc = QuadcopterPhysics(
-        mass_center=mass_center,
-        mass_motor=mass_motor,
-        radius_motor_center=radius_motor_center,
-        coef_force=coef_force,
-        coef_moment=coef_moment,
-        coef_wind=coef_wind,
-        gravity=gravity,
-        mass_payload=mass_payload,
-        x_payload=x_payload,
-        y_payload=y_payload
-    )
+    mass_center=mass_center,
+    mass_motor=mass_motor,
+    radius_motor_center=radius_motor_center,
+    coef_force=coef_force,
+    coef_moment=coef_moment,
+    coef_wind=coef_wind,
+    gravity=gravity,
+    mass_payload=mass_payload,
+    x_payload=x_payload,
+    y_payload=y_payload,
+)
 
 # base force for hovering in level flight
 base_thrust_force_drone = np.array([[0, 0, qc.G]], dtype=np.float32)
@@ -37,6 +37,6 @@ new_thrust_drone = np.dot(base_thrust_force_lab, Rot)
 print(f"new_thrust_drone: {new_thrust_drone}")
 
 try:
-    1/0
+    1 / 0
 except ZeroDivisionError as zerror:
     print("caught ya")

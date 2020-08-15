@@ -28,9 +28,36 @@ if __name__ == "__main__":
     dh = DataHandler(parentfolder="results", visualize=False)
     sensors = [Sensor(delta_t) for _ in range(6)]
     pids = [
-        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit", outputLimitRange=limitRange),
-        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit", outputLimitRange=limitRange),
-        PID(kp=kp, ki=ki, kd=kd, timeStep=delta_t, setValue=0, integralRange=2, calculateFlag="rangeExit", outputLimitRange=limitRange)
+        PID(
+            kp=kp,
+            ki=ki,
+            kd=kd,
+            timeStep=delta_t,
+            setValue=0,
+            integralRange=2,
+            calculateFlag="rangeExit",
+            outputLimitRange=limitRange,
+        ),
+        PID(
+            kp=kp,
+            ki=ki,
+            kd=kd,
+            timeStep=delta_t,
+            setValue=0,
+            integralRange=2,
+            calculateFlag="rangeExit",
+            outputLimitRange=limitRange,
+        ),
+        PID(
+            kp=kp,
+            ki=ki,
+            kd=kd,
+            timeStep=delta_t,
+            setValue=0,
+            integralRange=2,
+            calculateFlag="rangeExit",
+            outputLimitRange=limitRange,
+        ),
     ]
     quadcopter = QuadcopterPhysics(
         mass_center=mass_center,
@@ -42,7 +69,7 @@ if __name__ == "__main__":
         gravity=gravity,
         mass_payload=mass_payload,
         x_payload=x_payload,
-        y_payload=y_payload
+        y_payload=y_payload,
     )
 
     # Initialize Values
@@ -68,12 +95,13 @@ if __name__ == "__main__":
             roll=previous_roll,
             pitch=previous_pitch,
             yaw=previous_yaw,
-            wind_speed=previous_wind_speed)
+            wind_speed=previous_wind_speed,
+        )
 
         lin_acc, rot_acc = quadcopter.convert_to_acceleration(forces, moments)
 
         [sensors[i].measure_acceleration(lin_acc[i, 0]) for i in range(3)]
-        [sensors[i].measure_acceleration(rot_acc[i-3, 0]) for i in range(3, 6)]
+        [sensors[i].measure_acceleration(rot_acc[i - 3, 0]) for i in range(3, 6)]
 
         pos_x, vel_x = sensors[0].velocity_verlet(previous_x, previous_vx)
         pos_y, vel_y = sensors[1].velocity_verlet(previous_y, previous_vy)
@@ -97,7 +125,8 @@ if __name__ == "__main__":
             rotation=np.array([[roll, pitch, yaw]]),
             translation=np.array([[pos_x, pos_y, pos_z]]),
             thrusters=previous_thrust,
-            wind=previous_wind_speed)
+            wind=previous_wind_speed,
+        )
 
         # Update Values
         previous_x = pos_x

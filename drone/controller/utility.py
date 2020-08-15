@@ -78,6 +78,6 @@ if __name__ == "__main__":
                 setpoint_number += 1
                 timer = 0
         else:
-             timer = 0
+            timer = 0
 
     print(setpoint_number)

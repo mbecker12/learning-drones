@@ -1,18 +1,23 @@
 #!/bin/bash
 port=$(($RANDOM + 30000))
-cd $HOME/Chalmers/scs/SOCS-Project
+DRONE_DIR=$(pwd)
+cd $DRONE_DIR
 tab=" --tab-with-profile=Default"
 tab=" --tab"
 options=(--tab --title=Terminal)
+paramset=$1
 
-cmds[1]="pwd; cd $HOME/Chalmers/scs/SOCS-Project; python test_base.py $port 1 2"
+visualize=1
+num_servers=1
+
+cmds[1]="pwd; cd $DRONE_DIR; export PYTHONPATH="$DRONE_DIR"; echo 'pythonpath: $PYTHONPATH'; python flight/execute_choreo.py $port $visualize $num_servers $paramset"
 titles[1]="Server"
 
-cmds[2]="pwd; cd $HOME/Chalmers/scs/SOCS-Project; python visualization.py $port"
+cmds[2]="pwd; cd $DRONE_DIR; python visualization/visualization.py $port"
 titles[2]="viz"
 
-cmds[3]="pwd; cd $HOME/Chalmers/scs/SOCS-Project; python vtk_window.py $port"
-titles[3]="VTK"
+# cmds[3]="pwd; cd $DRONE_DIR; python vtk_window.py $port"
+# titles[3]="VTK"
 
 
 

@@ -10,7 +10,7 @@ Python 3.6.5
 
 """
 
-payload_set = None     # set to None if no payload
+payload_set = None  # set to None if no payload
 # GEOMETRY AND MASS
 mass_center = 0.200  # kg
 mass_motor = 0.050  # kg
@@ -38,18 +38,17 @@ y_payload = 0  # m
 kp = 1
 ti = 1
 td = 1
-ki = kp/ti
+ki = kp / ti
 kd = kp * td
 limitRange = [0, 1]
 
 if payload_set is not None:
     import numpy as np
-    iom_collection = np.load("iom_collection.npy")
-    mass_payload = iom_collection[payload_set, 0] # kg
-    x_payload = iom_collection[payload_set, 1]   # m
-    y_payload = iom_collection[payload_set, 2]   # m
-    I_x = iom_collection[payload_set, 3]   # kgm^2
-    I_y = iom_collection[payload_set, 4]   # kgm^2
-    I_z = iom_collection[payload_set, 5]  # kgm^2
 
-print("hi")
+    iom_collection = np.load("iom_collection.npy")
+    mass_payload = iom_collection[payload_set, 0]  # kg
+    x_payload = iom_collection[payload_set, 1]  # m
+    y_payload = iom_collection[payload_set, 2]  # m
+    I_x = iom_collection[payload_set, 3]  # kgm^2
+    I_y = iom_collection[payload_set, 4]  # kgm^2
+    I_z = iom_collection[payload_set, 5]  # kgm^2

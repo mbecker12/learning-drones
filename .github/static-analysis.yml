@@ -1,0 +1,33 @@
+stages:
+    - Static Analysis
+    - Unit Test
+  
+  pylint:
+    stage: Static Analysis
+    image: "python:3.8"
+    before_script:
+      - python --version
+      - pip install -r requirements.txt
+      - pip install pylint
+    tags:
+      - shared
+    script:
+      - pylint --rcfile .pylintrc drone
+      - pylint --rcfile .pylintrc visualization
+      - pylint --rcfile .pylintrc test
+      - pylint --rcfile .pylintrc flight
+  
+  black:
+    stage: Static Analysis
+    image: "python:3.8"
+    before_script:
+      - pip install -r requirements.txt
+      - pip install black
+    tags:
+      - shared
+    script:
+      - black --check drone
+      - black --check visualization
+      - black --check test
+      - black --check flight
+  

@@ -21,7 +21,7 @@ import sys
 set_floor = True
 show_target = True
 
-host = 'localhost'
+host = "localhost"
 port = 65432
 if len(sys.argv) > 1:
     port = int(sys.argv[1])
@@ -29,7 +29,14 @@ printouts = True
 
 
 class DroneHandle:
-    def __init__(self, actor: vtk.vtkActor, target: vtk.vtkActor, host: str, port: int, printouts: bool):
+    def __init__(
+        self,
+        actor: vtk.vtkActor,
+        target: vtk.vtkActor,
+        host: str,
+        port: int,
+        printouts: bool,
+    ):
 
         # rotations
         self.roll = 0
@@ -39,7 +46,7 @@ class DroneHandle:
         self.pitch_target = 0
         self.yaw_target = 0
 
-        #translations
+        # translations
         self.x = 0
         self.y = 0
         self.z = 0
@@ -57,25 +64,50 @@ class DroneHandle:
         try:
             data = self.socket.recv(1024)
             received = data.decode()
-            if printouts: print("[INFO] Message received: ", received)
-            if received == 'quit':
+            if printouts:
+                print("[INFO] Message received: ", received)
+            if received == "quit":
                 self.socket.close()
                 print("[INFO] Socket got closed")
                 quit()
             else:
-                message_type, roll, pitch, yaw, x, y, z = self._decode_message(message=received)
+                message_type, roll, pitch, yaw, x, y, z = self._decode_message(
+                    message=received
+                )
                 if message_type:
-                    self._update_vtk(obj, act=self.actor,
-                                     l_roll=self.roll, n_roll=roll,
-                                     l_pitch=self.pitch, n_pitch=pitch,
-                                     l_yaw=self.yaw, n_yaw=yaw, x=x, y=y, z=z)
-                    self._store_new_data(store=True, roll=roll, pitch=pitch, yaw=yaw, x=x, y=y, z=z)
+                    self._update_vtk(
+                        obj,
+                        act=self.actor,
+                        l_roll=self.roll,
+                        n_roll=roll,
+                        l_pitch=self.pitch,
+                        n_pitch=pitch,
+                        l_yaw=self.yaw,
+                        n_yaw=yaw,
+                        x=x,
+                        y=y,
+                        z=z,
+                    )
+                    self._store_new_data(
+                        store=True, roll=roll, pitch=pitch, yaw=yaw, x=x, y=y, z=z
+                    )
                 else:
-                    self._update_vtk(obj, act=self.target,
-                                     l_roll=self.roll_target, n_roll=roll,
-                                     l_pitch=self.pitch_target, n_pitch=pitch,
-                                     l_yaw=self.yaw_target, n_yaw=yaw, x=x, y=y, z=z)
-                    self._store_new_data(store=False, roll=roll, pitch=pitch, yaw=yaw, x=x, y=y, z=z)
+                    self._update_vtk(
+                        obj,
+                        act=self.target,
+                        l_roll=self.roll_target,
+                        n_roll=roll,
+                        l_pitch=self.pitch_target,
+                        n_pitch=pitch,
+                        l_yaw=self.yaw_target,
+                        n_yaw=yaw,
+                        x=x,
+                        y=y,
+                        z=z,
+                    )
+                    self._store_new_data(
+                        store=False, roll=roll, pitch=pitch, yaw=yaw, x=x, y=y, z=z
+                    )
 
         except OSError:
             # This is ugly but this should not happen in the real tests
@@ -83,7 +115,8 @@ class DroneHandle:
             quit()
 
     def _open_socket(self, host, port):
-        if self.printouts: print("[INFO] Waiting for connection")
+        if self.printouts:
+            print("[INFO] Waiting for connection")
         timer = 0
         while timer < 60:
             try:
@@ -92,14 +125,25 @@ class DroneHandle:
                 break
             except ConnectionRefusedError:
                 timer += 1
-                if self.printouts: print("[INFO] No server found! Try: ", timer, "/60")
+                if self.printouts:
+                    print("[INFO] No server found! Try: ", timer, "/60")
                 tm.sleep(0.5)
         if timer == 60:
             quit()
         else:
-            if self.printouts: print("[INFO] Connected")
+            if self.printouts:
+                print("[INFO] Connected")
 
-    def _store_new_data(self, store: bool, roll: float, pitch: float, yaw: float, x: float, y: float, z: float):
+    def _store_new_data(
+        self,
+        store: bool,
+        roll: float,
+        pitch: float,
+        yaw: float,
+        x: float,
+        y: float,
+        z: float,
+    ):
         if store:
             self.roll = roll
             self.pitch = pitch
@@ -119,23 +163,63 @@ class DroneHandle:
         meaning = message.split(" ")
         if meaning[0] == "SETPOINTS":
             try:
-                roll, pitch, yaw, x, y, z = [float(meaning[i]) for i in range(2, len(meaning), 2)]
-                return False, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x * 5, y * 5, z * 5
+                roll, pitch, yaw, x, y, z = [
+                    float(meaning[i]) for i in range(2, len(meaning), 2)
+                ]
+                return (
+                    False,
+                    roll * 180 / np.pi,
+                    pitch * 180 / np.pi,
+                    yaw * 180 / np.pi,
+                    x * 5,
+                    y * 5,
+                    z * 5,
+                )
             except ValueError:
-                if self.printouts: print("[ERROR] Couldn't decode message")
-                return True, self.roll_target, self.pitch_target, self.yaw_target,\
-                    self.x_target, self.y_target, self.z_target
+                if self.printouts:
+                    print("[ERROR] Couldn't decode message")
+                return (
+                    True,
+                    self.roll_target,
+                    self.pitch_target,
+                    self.yaw_target,
+                    self.x_target,
+                    self.y_target,
+                    self.z_target,
+                )
         else:
             try:
-                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = \
-                    [float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))]
-                return True, roll * 180/np.pi, pitch * 180/np.pi, yaw * 180/np.pi, x * 5, y * 5, z * 5
+                time, roll, pitch, yaw, x, y, z, t1, t2, t3, t4, windx, windy, windz = [
+                    float(meaning[2 * i + 1]) for i in range(int(len(meaning) / 2))
+                ]
+                return (
+                    True,
+                    roll * 180 / np.pi,
+                    pitch * 180 / np.pi,
+                    yaw * 180 / np.pi,
+                    x * 5,
+                    y * 5,
+                    z * 5,
+                )
             except ValueError:
-                if self.printouts: print("[ERROR] Couldn't decode message")
+                if self.printouts:
+                    print("[ERROR] Couldn't decode message")
                 return True, self.roll, self.pitch, self.yaw, self.x, self.y, self.z
 
-    def _update_vtk(self, obj, act: vtk.vtkActor, l_roll: float, l_pitch: float, l_yaw: float,
-                    n_roll: float, n_pitch: float, n_yaw: float, x: float, y: float, z: float):
+    def _update_vtk(
+        self,
+        obj,
+        act: vtk.vtkActor,
+        l_roll: float,
+        l_pitch: float,
+        l_yaw: float,
+        n_roll: float,
+        n_pitch: float,
+        n_yaw: float,
+        x: float,
+        y: float,
+        z: float,
+    ):
         # undo last rotation
         act.RotateZ(-l_yaw)
         act.RotateY(-l_pitch)
@@ -233,12 +317,14 @@ ren.SetActiveCamera(camera)
 renWin.Render()
 
 iren.Initialize()
-iren.RemoveObservers('LeftButtonPressEvent')
-iren.RemoveObservers('RightButtonPressEvent')
+iren.RemoveObservers("LeftButtonPressEvent")
+iren.RemoveObservers("RightButtonPressEvent")
 
-dh = DroneHandle(actor=droneActor, target=targetActor, host=host, port=port, printouts=printouts)
+dh = DroneHandle(
+    actor=droneActor, target=targetActor, host=host, port=port, printouts=printouts
+)
 
-iren.AddObserver('TimerEvent', dh.animate)
+iren.AddObserver("TimerEvent", dh.animate)
 iren.CreateRepeatingTimer(0)
 
 iren.Start()

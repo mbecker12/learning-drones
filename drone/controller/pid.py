@@ -1,9 +1,19 @@
 # noinspection PyAttributeOutsideInit
 import numpy as np
 
+
 class PID:
-    def __init__(self, kp: float, ki: float, kd: float, timeStep: float, setValue, calculateFlag,
-                 integralRange: float = 2, outputLimitRange=[-1, 1]):
+    def __init__(
+        self,
+        kp: float,
+        ki: float,
+        kd: float,
+        timeStep: float,
+        setValue,
+        calculateFlag,
+        integralRange: float = 2,
+        outputLimitRange=[-1, 1],
+    ):
         """ PID class, where ki = kp/ti and kd = kp*td  constants set  from the parameters.py file
             :param setValue  is the value we want the PID to reach
 
@@ -22,8 +32,11 @@ class PID:
         self.previousError = 0
         self.previousControlVal = 0
         self.outputLimitRange = outputLimitRange
-        self.calculateDictionary = {"noFlush": self.calculate_no_clear, "signChange": self.calculate_error_sign,
-                                    "rangeExit": self.calculate_range_exit}
+        self.calculateDictionary = {
+            "noFlush": self.calculate_no_clear,
+            "signChange": self.calculate_error_sign,
+            "rangeExit": self.calculate_range_exit,
+        }
         self.calculate = self.calculateDictionary[calculateFlag]
 
     def calculate_no_clear(self, controlValue):
@@ -40,7 +53,11 @@ class PID:
         else:
             controlValDiff = 0
 
-        output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
+        output = (
+            self.kp * error
+            + self.ki * self.integralError * self.dt
+            - self.kd * controlValDiff / self.dt
+        )
         self.previousControlVal = controlValue
 
         if self.previousControlVal != 0:
@@ -48,7 +65,11 @@ class PID:
         else:
             controlValDiff = 0
 
-        output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
+        output = (
+            self.kp * error
+            + self.ki * self.integralError * self.dt
+            - self.kd * controlValDiff / self.dt
+        )
         self.previousControlVal = controlValue
 
         return self.check_output(output)
@@ -72,7 +93,11 @@ class PID:
         else:
             controlValDiff = 0
 
-        output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
+        output = (
+            self.kp * error
+            + self.ki * self.integralError * self.dt
+            - self.kd * controlValDiff / self.dt
+        )
         self.previousControlVal = controlValue
 
         if error != 0:
@@ -96,7 +121,11 @@ class PID:
         else:
             controlValDiff = 0
 
-        output = self.kp * error + self.ki * self.integralError * self.dt - self.kd * controlValDiff / self.dt
+        output = (
+            self.kp * error
+            + self.ki * self.integralError * self.dt
+            - self.kd * controlValDiff / self.dt
+        )
         self.previousControlVal = controlValue
         return self.check_output(output)
 
