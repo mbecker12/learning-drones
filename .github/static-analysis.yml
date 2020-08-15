@@ -1,42 +1,51 @@
 name: Static Analysis
-on : [push]
 on:
     push:
       branches:
-        - master
-        - base-functionality
+        - '*'
 
 
 
 jobs:
   pylint:
-    name: pylint
-    stage: Static Analysis
-    image: "python:3.8"
-    before_script:
-      - python --version
-      - pip install -r requirements.txt
-      - pip install pylint
-    tags:
-      - shared
-    script:
-      - pylint --rcfile .pylintrc drone
-      - pylint --rcfile .pylintrc visualization
-      - pylint --rcfile .pylintrc test
-      - pylint --rcfile .pylintrc flight
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        # Semantic version range syntax or exact version of a Python version
+        python-version: '3.7' 
+    - uses: actions/checkout@v2
+    - run: |
+          pwd
+          ls -la
+          python -m pip install --upgrade pip
+          python --version
+          pip install -r requirements.txt
+          pip install pylint
+          pylint --rcfile .pylintrc drone
+          pylint --rcfile .pylintrc visualization
+          pylint --rcfile .pylintrc test
+          pylint --rcfile .pylintrc flight
+            
   
   black:
-    name: pylint
-    stage: Static Analysis
-    image: "python:3.8"
-    before_script:
-      - pip install -r requirements.txt
-      - pip install black
-    tags:
-      - shared
-    script:
-      - black --check drone
-      - black --check visualization
-      - black --check test
-      - black --check flight
+    name: Black
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        # Semantic version range syntax or exact version of a Python version
+        python-version: '3.7' 
+    - uses: actions/checkout@v2
+    - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black
+          black --check flight
+          black --check drone
+          black --check visualization
+          black --check test
   
