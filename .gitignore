@@ -12,6 +12,7 @@ rotation_compare_pid/
 rotation_choreo*/
 rotation/
 htmlcov/
+evolution/
 **/best_drone*
 
 # Byte-compiled / optimized / DLL files
