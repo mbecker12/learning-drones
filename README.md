@@ -13,6 +13,15 @@ predefined positions. Each coin will earn the drone a reward, the reward score w
 As of now, there is no real use of the rewards system.
 Next steps would be to implement a training routine to make use of the reward.
 
+## Neuroevolution
+
+Executing
+
+    python evolve/evolution.py
+
+starts a simple neuroevolution algorithm to train and evolve the controller unit within the drones of a population.
+
+Current objective is to collect a coin and/or stay in the air for as long as possible.
 
 ## Test Framework
 You can write unit tests for your code by placing files of test classes in the ./test directory.
