@@ -42,6 +42,15 @@ ki = kp / ti
 kd = kp * td
 limitRange = [0, 1]
 
+import numpy as np
+
+initial_thrust = np.array([[0, 0, 0, 0]]).T
+initial_wind_speed = np.array([[0.0, 0.0, 0.0]]).T
+initial_angle = np.array([[0, 0, 0]]).T * np.pi / 180
+initial_angle_vel = np.array([[0, 0, 0]]).T
+initial_pos = np.array([[0.0, 0.0, 10.0]]).T
+initial_vel = np.array([[0.0, 0.0, 0.0]]).T
+
 if payload_set is not None:
     import numpy as np
 

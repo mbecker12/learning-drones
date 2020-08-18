@@ -203,10 +203,7 @@ if __name__ == "__main__":
         I_z=I_z,
     )
 
-    controller = PIDControlUNnit(
-        np.concatenate([lin_pids, rot_pids]),
-        quadcopter
-        )
+    controller = PIDControlUNnit(np.concatenate([lin_pids, rot_pids]), quadcopter)
 
     # Initialize Values
     wind_speed = initial_wind_speed
@@ -235,7 +232,7 @@ if __name__ == "__main__":
     ################ MAIN LOOP ####################
     ###############################################
     # roll, pitch, yaw (all in radians), x, y, z
-    
+
     # visited points:
 
     # target_cheoreography = np.asarray([
@@ -265,7 +262,7 @@ if __name__ == "__main__":
         Coin(np.asarray([[0.0, 0.0, 5.0]]).T, 1, value=1000),
         Coin(np.asarray([[25.0, 25.0, 5.0]]).T, 1, value=1000),
         Coin(np.asarray([[-10.0, 35.0, 5.0]]).T, 1, value=1000),
-        Coin(np.asarray([[0.0, 0.0, 5.0]]).T, 1, value=1000)
+        Coin(np.asarray([[0.0, 0.0, 5.0]]).T, 1, value=1000),
     ]
 
     stab_counter = 0
@@ -288,8 +285,6 @@ if __name__ == "__main__":
         if collected_coin:
             score += target_coins[target_index].value
             new_target_index = target_index + 1
-            
-
 
         if new_target_index >= len(target_coins):
             print(f"Final Score: {score}, Paramset: {paramset_num}")
@@ -346,10 +341,14 @@ if __name__ == "__main__":
         )
 
         thrust = controller.translate_input_to_thrust(
-            lab_pos, lab_lin_vel, drone_angle, drone_angle_vel, 
-            drone_angle, 
-            lin_pids, 
-            rot_pids)
+            lab_pos,
+            lab_lin_vel,
+            drone_angle,
+            drone_angle_vel,
+            drone_angle,
+            lin_pids,
+            rot_pids,
+        )
 
         print(f"x: {lab_pos[0, 0]}, vx: {lab_lin_vel[0, 0]}, ax: {lab_lin_acc[0, 0]}")
         print(f"y: {lab_pos[1, 0]}, vy: {lab_lin_vel[1, 0]}, ay: {lab_lin_acc[1, 0]}")

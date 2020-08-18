@@ -22,12 +22,13 @@ class Sensor:
     memory of the last couple of acceleration values?
     """
 
-    def __init__(self, delta_t, previous_pos, previous_vel):
+    def __init__(self, delta_t, previous_pos, previous_vel, verbose=False):
         self.current_acceleration = 0.0
         self.last_acceleration = 0.0
         self.previous_pos = previous_pos
         self.previous_vel = previous_vel
         self.delta_t = delta_t
+        self.verbose = verbose
 
     def set_position(self, position):
         self.previous_pos = position
@@ -40,7 +41,7 @@ class Sensor:
 
     def measure_acceleration(self, acceleration):
         assert isinstance(acceleration, (float, np.float16, np.float32, np.float64))
-        if self.last_acceleration == 0:
+        if self.last_acceleration == 0 and self.verbose:
             logger.debug(
                 "Previous Acceleration Set to 0. Supposed to be done in Initialization only."
             )

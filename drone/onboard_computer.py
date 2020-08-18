@@ -23,6 +23,7 @@ Then use this data to translate it to thruster output
 Can be implemented by neural networks and 
 trained using neuroevolution or reinforcement learning
 """
+import abc
 import numpy as np
 import math
 from drone.sensor.sensor import Sensor, get_positions_and_angles
@@ -30,14 +31,15 @@ from drone.quadcopter.geometry import rotation_matrix
 from drone.quadcopter.physical_model import QuadcopterPhysics
 
 
-class ControlUnit:
+class ControlUnit(abc.ABC):
     def __init__(self):
         pass
 
+    @abc.abstractmethod
     def translate_input_to_thrust(
         self, sensor_outputs: np.ndarray, rotation: np.ndarray
     ):
-        pass
+        return NotImplementedError
 
 
 class PIDControlUNnit(ControlUnit):
@@ -45,7 +47,9 @@ class PIDControlUNnit(ControlUnit):
         self.qc = quadcopter
         pass
 
-    def _calc_pid_outputs(self, lab_pos, lab_lin_vel, drone_angle, drone_angle_vel, lin_pids, rot_pids):
+    def _calc_pid_outputs(
+        self, lab_pos, lab_lin_vel, drone_angle, drone_angle_vel, lin_pids, rot_pids
+    ):
 
         # now, everything should be returned in lab coordinates
         # lab_pos, lab_lin_vel, drone_angle, drone_angle_vel = get_positions_and_angles(
@@ -114,8 +118,17 @@ class PIDControlUNnit(ControlUnit):
         return thrust
 
     def translate_input_to_thrust(
-        self, lab_pos, lab_lin_vel, drone_angle, drone_angle_vel, rotation, lin_pids=None, rot_pids=None
+        self,
+        lab_pos,
+        lab_lin_vel,
+        drone_angle,
+        drone_angle_vel,
+        rotation,
+        lin_pids=None,
+        rot_pids=None,
     ):
-        pid_outputs = self._calc_pid_outputs(lab_pos, lab_lin_vel, drone_angle, drone_angle_vel, lin_pids, rot_pids)
+        pid_outputs = self._calc_pid_outputs(
+            lab_pos, lab_lin_vel, drone_angle, drone_angle_vel, lin_pids, rot_pids
+        )
         thrust = self._translate_pid_to_thrust(pid_outputs, rotation)
         return thrust

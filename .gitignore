@@ -12,6 +12,7 @@ rotation_compare_pid/
 rotation_choreo*/
 rotation/
 htmlcov/
+**/best_drone*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

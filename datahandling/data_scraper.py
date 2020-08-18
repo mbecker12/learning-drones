@@ -61,12 +61,15 @@ class DataHandler:
 
         # create folder to dump results
         try:
-            os.makedirs(self.dir_name, exist_ok=True)
-        except OSError:
+            os.makedirs(
+                self.dir_name, exist_ok=True,
+            )
+        except OSError as err:
             print(
                 "[ERROR] Creation of the directory {} failed".format(self.dir_name),
                 ". Parentfolders need to be manually created!",
             )
+            print(err)
             quit()
         else:
             if self.printouts:
@@ -164,7 +167,7 @@ class DataHandler:
         )
         self.setpoints = np.concatenate([self.setpoints, setpoints], axis=0)
 
-    def finish(self):
+    def finish(self, score=None, quit_program=True):
         """
         Close sockets and save data to files
         :return:
@@ -188,7 +191,11 @@ class DataHandler:
         self._save_csv()
         self._save_npy()
 
-        quit()
+        if score is not None:
+            print(f"Final Score: {score}")
+
+        if quit_program:
+            quit()
 
     def _open_server(self, host, port):
         if self.printouts:
@@ -201,6 +208,7 @@ class DataHandler:
             logger.error("port: " + str(port))
             logger.exception(err)
             sys.exit()
+        # print(s)
         self.conn = []
         for i in range(self.n_servers):
             s.listen()
