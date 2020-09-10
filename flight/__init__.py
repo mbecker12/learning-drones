@@ -17,7 +17,7 @@ def fly(
     n_servers=0,
     punish_time=False,
     reward_time=True,
-    idx=None
+    idx=None,
 ):
 
     # print(f"flying in PID: {os.getpid()}")

@@ -77,19 +77,12 @@ class Drone(ControlUnit):
 
     def enable_visualization(self, visualize, n_servers, port, dir_name="./rewatch"):
         self.dh = DataHandler(
-            parentfolder=dir_name,
-            visualize=visualize,
-            n_servers=n_servers,
-            port=port,
+            parentfolder=dir_name, visualize=visualize, n_servers=n_servers, port=port,
         )
 
     def translate_input_to_thrust(self, coin_position):
         self.thrust = self.controller.translate_input_to_thrust(
-            self.position,
-            self.velocity,
-            self.angle,
-            self.angle_vel,
-            coin_position,
+            self.position, self.velocity, self.angle, self.angle_vel, coin_position,
         )
 
     def status_update(self, time, lin_targets=None):
