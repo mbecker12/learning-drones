@@ -5,7 +5,8 @@ Run
     bash run_simulation.sh ${paramset}
 
 to get a test flight running. (Try for example paramset=11)
-Atm it is set up to only show the graphs for visualization and no 3D model.
+
+At the moment it is set up to only show the graphs for visualization and no 3D model.
 
 This will start a simulation where a drone collects coins successively in
 predefined positions. Each coin will earn the drone a reward, the reward score will decrease with each passed time step.
