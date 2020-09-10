@@ -11,10 +11,10 @@ import jsonpickle
 import json
 from multiprocessing.pool import ThreadPool, Pool
 from multiprocessing import Manager
-from multiprocessing import shared_memory
+# from multiprocessing import shared_memory
 
-n_generations = 500
-n_drones = 50
+n_generations = 20
+n_drones = 20
 mutation_rate = 0.05
 p_tournament = 0.6
 p_crossover = 0.05
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
             # return_val = async_result.get()
             # score, flight_time, idx = return_val
-        # print(async_results)
+        
         for result in async_results:
             score, flight_time, idx = result.get()
             # print(score, flight_time, idx)
@@ -116,3 +116,5 @@ if __name__ == "__main__":
     winning_drone_json = jsonpickle.encode(global_best_drone)
     with open(f"evolution/winning_drone_{execution_time}.json", "w") as jsonfile:
         json.dump(winning_drone_json, jsonfile)
+
+    print(f"To reference this training, use execution time {execution_time}")
