@@ -121,40 +121,6 @@ class QuadcopterPhysics:
 
         return lin_acc, rot_acc
 
-    def calculate_motor_thrust(
-        self, pid_outputs: np.ndarray, rotation: np.ndarray
-    ) -> np.ndarray:
-        """
-        :param pid_outputs 6 rows 1 column (3 rotation, 3 linear)
-        :param rotation [roll, pitch, yaw]
-        :return: 4 rows 1 column
-        """
-
-        self.Rot = rotation_matrix(rotation[0, 0], rotation[1, 0], rotation[2, 0])
-
-        # desired_translation = pid_outputs[3, 0] * 0.5 * VEC_PITCH + \
-        #     pid_outputs[4, 0] * 0.5 * VEC_ROLL
-
-        desired_rotation = self.angle_control_to_thrust.dot(pid_outputs[:3])
-
-        base_multiplicator = self.G / (4 * self.c_f) + pid_outputs[5, 0]
-        base_thrust = np.ones([4, 1]) * base_multiplicator
-
-        try:
-            transforming_ratio = 1 / (math.cos(rotation[0]) * math.cos(rotation[1]))
-        except ZeroDivisionError:
-            transforming_ratio = 1
-
-        base_thrust_transformed = base_thrust * transforming_ratio
-        base_thrust_transformed[base_thrust_transformed > 1] = 1
-        base_thrust_transformed[base_thrust_transformed < 0] = 0
-
-        thrust = base_thrust_transformed + desired_rotation
-        thrust[thrust > 1] = 1
-        thrust[thrust < 0] = 0
-
-        return thrust
-
 
 # if __name__ == "__main__":
 #     from parameters import *

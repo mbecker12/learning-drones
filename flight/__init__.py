@@ -9,6 +9,33 @@ from objects.coins import Coin
 from drone.quadcopter.parameters import *
 
 
+def set_coin_successively(run_idx, radius_sq=50, height=10, total_runs=5):
+    phi = run_idx / total_runs * 2 * np.pi
+    x = np.sqrt(radius_sq) * np.cos(phi)
+    y = np.sqrt(radius_sq) * np.sin(phi)
+    z = height
+
+    return np.array([[x], [y], [z]])
+
+
+def set_coin_delta(run_idx, radius_sq=50, total_runs=5):
+    phi = run_idx / total_runs * 2 * np.pi + np.random.normal(0.0, 0.1)
+    delta_x = np.sqrt(radius_sq) * np.cos(phi)
+    delta_y = np.sqrt(radius_sq) * np.sin(phi)
+    delta_z = np.random.normal(0.0, 1.0)
+
+    return np.array([[delta_x], [delta_y], [delta_z]])
+
+
+def set_coin_position_on_radius(radius_sq=50, height=10):
+    phi = np.random.random_sample() * 2 * np.pi
+    x = np.sqrt(radius_sq) * np.cos(phi)
+    y = np.sqrt(radius_sq) * np.sin(phi)
+    z = height
+
+    return np.array([[x], [y], [z]])
+
+
 def fly(
     drone: Drone,
     timesteps: int = 2500,
@@ -18,11 +45,18 @@ def fly(
     punish_time=False,
     reward_time=True,
     idx=None,
+    run_idx=None,
+    total_runs=5,
 ):
 
     # print(f"flying in PID: {os.getpid()}")
     # initialize coin
-    coin = Coin(np.array([[5], [5], [10]]), 2, 2000)
+    coin_position = set_coin_successively(
+        run_idx, radius_sq=50, height=10, total_runs=total_runs
+    )
+    # print(run_idx, coin_position)
+    coin = Coin(coin_position, 2, 1000)
+    # coin = Coin(np.array([[5], [5], [10]]), 2, 1000)
 
     # initialize drone position
     wind_speed = initial_wind_speed
@@ -49,7 +83,11 @@ def fly(
             drone.reward += coin.value
             drone.coins += 1
 
-            coin = Coin(coin.position + np.array([[5.0], [2.5], [0.0]]), 1, value=1000)
+            # coin = Coin(coin.position + np.array([[5.0], [2.5], [0.0]]), 2, value=2000)
+            coin_pos_delta = set_coin_delta(
+                run_idx, radius_sq=50, total_runs=total_runs
+            )
+            coin = Coin(coin.position + coin_pos_delta, 2, value=2000)
             # coin = Coin(
             #     coin.position + (10 * np.random.random_sample(coin.position.shape)),
             #     1,

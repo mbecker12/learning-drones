@@ -1,6 +1,6 @@
 #!/bin/bash
 port=$(($RANDOM + 30000))
-port=65432
+# port=65432
 DRONE_DIR=$(pwd)
 cd $DRONE_DIR
 tab=" --tab-with-profile=Default"
@@ -11,7 +11,7 @@ timestamp=$1
 visualize=1
 num_servers=1
 
-cmds[1]="pwd; cd $DRONE_DIR; export PYTHONPATH="$DRONE_DIR"; python fly_best_drone.py $timestamp"
+cmds[1]="pwd; cd $DRONE_DIR; export PYTHONPATH="$DRONE_DIR"; python fly_best_drone.py $timestamp $port"
 titles[1]="Server"
 
 cmds[2]="pwd; cd $DRONE_DIR; python visualization/visualization.py $port"

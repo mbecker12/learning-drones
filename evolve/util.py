@@ -2,6 +2,7 @@ import numpy as np
 from copy import deepcopy
 from drone.drone import Drone
 
+
 def selection_and_crossover(drones, p_tournament, p_crossover):
     n = len(drones)
     new_population = deepcopy(drones)

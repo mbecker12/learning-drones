@@ -3,27 +3,35 @@ from copy import deepcopy
 import sys
 from time import sleep, time
 import traceback
+
 sys.path.append("/home/marvin/Projects/Drones")
 from drone.drone import Drone
-from evolve.util import selection_and_crossover, tournament_select, get_best_of_generation
+from evolve.util import (
+    selection_and_crossover,
+    tournament_select,
+    get_best_of_generation,
+)
 from flight import fly
 import jsonpickle
 import json
 from multiprocessing.pool import ThreadPool, Pool
 from multiprocessing import Manager
+
 # from multiprocessing import shared_memory
 
-n_generations = 20
-n_drones = 20
+n_generations = 250
+n_drones = 40
 mutation_rate = 0.05
 p_tournament = 0.6
-p_crossover = 0.05
+p_crossover = 0.3
+n_executions = 5
 
 
 def thread_prompt(scores, times, result):
     score, flight_time, idx = result
     scores[idx] = score
     times[idx] = flight_time
+
 
 def thread_error_prompt(err):
     traceback.print_exception(type(err), err, err.__traceback__)
@@ -52,25 +60,37 @@ if __name__ == "__main__":
         print(f"Time elapsed for last generation: {generation_time}")
         start_time = time()
         # TODO: find a way to do this in separate threads
-        
+
         # TODO: threads won't be the answer; need to use processes
         # TODO: For that, we need to find a way to share complex/nested objects between processes
         # maybe this will help:
         # https://docs.python.org/3/library/multiprocessing.html#proxy-objects
         # https://www.geeksforgeeks.org/multiprocessing-python-set-2/
 
-        # for i, drone in enumerate(drones):
-            # execute function 'fly' from module flight in multiple threads
-        async_results = [thread_pool.apply_async(fly, (drone, ), {"idx": i}, error_callback=thread_error_prompt) for i, drone in enumerate(drones)]
+        for i, drone in enumerate(drones):
+            avg_score = 0
+            avg_flight_time = 0
+            for j in range(n_executions):
+                score, flight_time, idx = fly(
+                    drone, idx=i, run_idx=j, total_runs=n_executions
+                )
+                avg_score += score
+                avg_flight_time += flight_time
+                drone.reset()
 
-            # return_val = async_result.get()
-            # score, flight_time, idx = return_val
-        
-        for result in async_results:
-            score, flight_time, idx = result.get()
-            # print(score, flight_time, idx)
-            scores[idx] = score
-            times[idx] = flight_time
+            scores[idx] = avg_score / n_executions
+            times[idx] = avg_flight_time / n_executions
+            # execute function 'fly' from module flight in multiple threads
+        # async_results = [thread_pool.apply_async(fly, (drone, ), {"idx": i}, error_callback=thread_error_prompt) for i, drone in enumerate(drones)]
+
+        # return_val = async_result.get()
+        # score, flight_time, idx = return_val
+
+        # for result in async_results:
+        #     score, flight_time, idx = result.get()
+        #     # print(score, flight_time, idx)
+        #     scores[idx] = score
+        #     times[idx] = flight_time
         # async_result.get()
         # thread_pool.join()
         # best_index, best_score = get_best_of_generation(scores)
@@ -112,7 +132,7 @@ if __name__ == "__main__":
 
     thread_pool.terminate()
     thread_pool.close()
-    
+
     winning_drone_json = jsonpickle.encode(global_best_drone)
     with open(f"evolution/winning_drone_{execution_time}.json", "w") as jsonfile:
         json.dump(winning_drone_json, jsonfile)

@@ -12,7 +12,7 @@ delta_t = 0.01
 REWARD_CRASHED = -3000
 REWARD_TIME_PASSED = 2
 REWARD_COIN_DISTANCE = lambda d: -100 * int(d)
-REWARD_UNSTABLE = -1
+REWARD_UNSTABLE = -5
 ANGLE_LIMIT = np.pi / 4  # radians
 ANGLE_VEL_LIMIT = 20
 
@@ -62,7 +62,7 @@ class Drone(ControlUnit):
             ]
         )
 
-        self.controller = NeuralNetwork(layer_spec={1: 10, 2: 10, 3: 4})
+        self.controller = NeuralNetwork(layer_spec={1: 128, 2: 64, 3: 32, 4: 16, 5: 4})
 
         self.distance_to_coin = np.Infinity
         self.reward = 0
@@ -74,8 +74,11 @@ class Drone(ControlUnit):
         self.angle = initial_angle
         self.angle_vel = initial_angle_vel
         self.thrust = initial_thrust
+        self.lab_lin_acc = None
+        self.lab_rot_acc = None
 
     def enable_visualization(self, visualize, n_servers, port, dir_name="./rewatch"):
+        del self.dh
         self.dh = DataHandler(
             parentfolder=dir_name, visualize=visualize, n_servers=n_servers, port=port,
         )
@@ -86,6 +89,9 @@ class Drone(ControlUnit):
         )
 
     def status_update(self, time, lin_targets=None):
+        """
+        Print a formatted string with current velocity, position, etc.
+        """
         print(f"time: {time}")
 
         pos_title = "position:".ljust(25)
@@ -124,6 +130,8 @@ class Drone(ControlUnit):
             thrusters=self.thrust,
             wind=wind_speed,
             pid=pid_outputs,
+            lin_acc=self.lab_lin_acc,
+            rot_acc=self.lab_rot_acc,
         )
 
     def measure(self, wind_speed):
@@ -131,6 +139,8 @@ class Drone(ControlUnit):
         lab_lin_acc, lab_rot_acc = self.quadcopter.calculate_accelerations(
             self.angle, wind_speed, self.thrust, lin_acc_drone_2_lab=True
         )
+        self.lab_lin_acc = lab_lin_acc
+        self.lab_rot_acc = lab_rot_acc
 
         # measurement in lab frame
         [self.sensors[i].measure_acceleration(lab_lin_acc[i, 0]) for i in range(3)]
@@ -185,6 +195,8 @@ class Drone(ControlUnit):
         self.angle = np.array(initial_angle)
         self.angle_vel = np.array(initial_angle_vel)
         self.thrust = np.array(initial_thrust)
+        self.lab_rot_acc = None
+        self.lab_lin_acc = None
 
         self.sensors = [
             Sensor(delta_t, np.array(initial_pos)[i, 0], np.array(initial_vel)[i, 0])

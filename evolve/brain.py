@@ -5,14 +5,17 @@ import sys
 sys.path.append("/home/marvin/Projects/Drones")
 from drone.onboard_computer import ControlUnit
 
+EPSILON = 1e-8
+
 
 class NeuralNetwork(ControlUnit):
-    def __init__(self, layer_spec={1: 8, 2: 10, 3: 4}, n_inputs=15):
+    def __init__(self, layer_spec={1: 32, 2: 16, 3: 8, 4: 4}, n_inputs=15):
         """
         layer_spec: dict of network layers
             <layer_number>: <number of neurons>
         """
         self.weights = []
+        self.batch_norm_params = []
         self.n_layers = len(layer_spec)
         layer_spec[0] = n_inputs
         self.layer_spec = layer_spec
@@ -21,7 +24,11 @@ class NeuralNetwork(ControlUnit):
                 continue
             layer_inputs = layer_spec[layer_num - 1]
 
-            self.weights.append(npr.normal(0.0, 1. / np.sqrt(n_neurons), size=(n_neurons, layer_inputs + 1)))
+            self.weights.append(
+                npr.normal(
+                    0.0, 1.0 / np.sqrt(n_neurons), size=(n_neurons, layer_inputs + 1)
+                )
+            )
 
     def _relu(self, x, thresh=0, alpha=1.0):
         if x < thresh:
@@ -39,13 +46,19 @@ class NeuralNetwork(ControlUnit):
         return out
 
     def feed_forward(self, input_vec):
-        x = input_vec
+        # TODO
+        # maybe add normalization and batch_norm
+        # what would be a sensible normalization for distance and velocity measures
+        x = np.tanh(input_vec * 0.1)
+        # print(x)
+
         for i in range(0, self.n_layers):
             last_layer = i == (self.n_layers - 1)
             x = np.vstack((x, [[1]]))
             x = np.dot(self.weights[i], x)
 
             assert x.shape[1] == 1
+
             if not last_layer:
                 x = self.relu(x)
             else:

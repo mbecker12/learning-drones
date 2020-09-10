@@ -225,6 +225,8 @@ if __name__ == "__main__":
         thrusters=thrust,
         wind=wind_speed,
         pid=pid_outputs,
+        lin_acc=lab_lin_acc,
+        rot_acc=lab_rot_acc,
     )
 
     # force changes
@@ -361,6 +363,8 @@ if __name__ == "__main__":
             thrusters=thrust,
             wind=wind_speed,
             pid=pid_outputs,
+            lin_acc=lab_lin_acc,
+            rot_acc=lab_rot_acc,
         )
 
     dh.finish()

@@ -88,6 +88,8 @@ class DataHandler:
         self.wind = np.zeros([1, 2], dtype=np.float32)
         self.pid = np.zeros([1, 6], dtype=np.float32)
         self.setpoints = np.zeros([1, 6], dtype=np.float32)
+        self.lin_acc = np.zeros([1, 3], dtype=np.float32)
+        self.rot_acc = np.zeros([1, 3], dtype=np.float32)
 
     def new_data(
         self,
@@ -97,6 +99,8 @@ class DataHandler:
         thrusters: np.ndarray,
         wind: np.ndarray,
         pid: np.ndarray,
+        lin_acc: np.ndarray,
+        rot_acc: np.ndarray,
     ):
 
         """
@@ -107,6 +111,8 @@ class DataHandler:
         :param thrusters: [t_1, t_2, t_3, t_4]
         :param wind: [w_x, w_y, w_z]
         :param pid: [c_roll, c_pitch, c_yaw]
+        :param lin_acc: [a_x, a_y, a_z] NOTE: in lab-coordinates
+        :param rot_acc: [alpha_x, alpha_y, alpha_z] NOTE: in lab-coordinates
         :return:
         """
 
@@ -117,12 +123,16 @@ class DataHandler:
             or thrusters.shape != (4, 1)
             or wind.shape != (3, 1)
             or pid.shape != (6, 1)
+            or lin_acc.shape != (3, 1)
+            or rot_acc.shape != (3, 1)
         ):
             logger.error("rotation.shape: " + str(rotation.shape))
             logger.error("translation.shape: " + str(translation.shape))
             logger.error("thrusters.shape: " + str(thrusters.shape))
             logger.error("wind.shape: " + str(wind.shape))
             logger.error("pid.shape: " + str(pid.shape))
+            logger.error("lin_acc.shape: " + str(lin_acc.shape))
+            logger.error("rot_acc.shape: " + str(rot_acc.shape))
             raise ValueError("One or more input values are not of the right size")
 
         # talk to visualization tool
@@ -143,6 +153,8 @@ class DataHandler:
         self.thrusters = np.concatenate([self.thrusters, thrusters.T], axis=0)
         self.wind = np.concatenate([self.wind, wind[:2].T], axis=0)
         self.pid = np.concatenate([self.pid, pid.T], axis=0)
+        self.lin_acc = np.concatenate([self.lin_acc, lin_acc.T], axis=0)
+        self.rot_acc = np.concatenate([self.rot_acc, rot_acc.T], axis=0)
 
     def new_setpoints(self, rotation: np.ndarray, translation: np.ndarray):
         message = "SETPOINTS roll: {:.4f} pitch: {:.4f} yaw: {:.4f} ".format(
@@ -186,10 +198,12 @@ class DataHandler:
         self.wind = self.wind[1:, :]
         self.pid = self.pid[1:, :]
         self.setpoints = self.setpoints[1:, :]
+        self.lin_acc = self.lin_acc[1:, :]
+        self.rot_acc = self.rot_acc[1:, :]
 
-        for c in self.conn:
-            c.shutdown(1)
-            c.close()
+        # for c in self.conn:
+        #     c.shutdown(1)
+        #     c.close()
 
         # save data
         self._save_csv()
@@ -275,6 +289,8 @@ class DataHandler:
         np.save(self.dir_name + "wind", self.wind)
         np.save(self.dir_name + "pid", self.pid)
         np.save(self.dir_name + "setpoints", self.setpoints)
+        np.save(self.dir_name + "lin_acc", self.lin_acc)
+        np.save(self.dir_name + "rot_acc", self.rot_acc)
         if self.printouts:
             print("[INFO] .npy saved")
 
@@ -294,6 +310,8 @@ class DataHandler:
                 self.wind,
                 self.pid,
                 self.setpoints,
+                self.lin_acc,
+                self.rot_acc,
             ],
             axis=1,
         )
