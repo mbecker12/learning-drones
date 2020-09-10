@@ -6,7 +6,11 @@ Run
 
 to get a test flight running. (Try for example paramset=11)
 
-This will show show both the graphs for visualization and a 3D model of a drone.
+This will show show both the graphs for visualization and a 3D model of a drone (Shoutout to Jan Schiffeler, [@Platygator]( https://github.com/Platygator ), for the visualization).
+
+Alternatively, to have a slightly quicker simulation but without the 3D model, run
+
+    bash run_simulation_without_viz.sh ${paramset}
 
 This will start a simulation where a drone collects coins successively in
 predefined positions. Each coin will earn the drone a reward, the reward score will decrease with each passed time step.
