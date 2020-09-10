@@ -2,7 +2,7 @@ name: Static Analysis
 on:
     push:
       branches:
-        - 'base-functionality'
+        - base-functionality
 
 
 
