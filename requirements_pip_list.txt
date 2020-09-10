@@ -3,7 +3,7 @@ astroid            ==2.4.1
 attrs              ==19.3.0      
 backcall           ==0.1.0       
 black  
-bleach             ==3.1.0       
+bleach             ==3.1.4       
 camels             ==0.0.8       
 click              ==7.1.2       
 coverage           ==4.5.4       
