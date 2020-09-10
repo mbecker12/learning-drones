@@ -1,9 +1,5 @@
 name: Static Analysis
-on:
-  push:
-    branches:
-      - base-functionality
-
+on: [push]
 jobs:
   pylint:
     name: Static Analysis
@@ -26,8 +22,7 @@ jobs:
           pylint --rcfile .pylintrc visualization
           pylint --rcfile .pylintrc test
           pylint --rcfile .pylintrc flight
-            
-  
+             
   black:
     name: Black
     runs-on: ubuntu-latest
