@@ -1,10 +1,8 @@
 name: Static Analysis
 on:
-    push:
-      branches:
-        - base-functionality
-
-
+  push:
+    branches:
+      - base-functionality
 
 jobs:
   pylint:
