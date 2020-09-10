@@ -21,9 +21,7 @@ class NeuralNetwork(ControlUnit):
                 continue
             layer_inputs = layer_spec[layer_num - 1]
 
-            self.weights.append(
-                2 * npr.random_sample((n_neurons, layer_inputs + 1)) - 1
-            )
+            self.weights.append(npr.normal(0.0, 1. / np.sqrt(n_neurons), size=(n_neurons, layer_inputs + 1)))
 
     def _relu(self, x, thresh=0, alpha=1.0):
         if x < thresh:
@@ -36,7 +34,7 @@ class NeuralNetwork(ControlUnit):
             [[self._relu(x, thresh=thresh, alpha=alpha) for x in np.squeeze(x_vec)]]
         ).T
 
-    def sigmoid(self, x, beta=1.0):
+    def sigmoid(self, x, beta=0.4):
         out = 1 / (np.exp(-beta * x) + 1)
         return out
 
@@ -46,9 +44,7 @@ class NeuralNetwork(ControlUnit):
             last_layer = i == (self.n_layers - 1)
             x = np.vstack((x, [[1]]))
             x = np.dot(self.weights[i], x)
-            assert x.shape[0] == (
-                self.layer_spec[i + 1]
-            ), f"{i}, {x.shape}, {self.layer_spec[i + 1]}"
+
             assert x.shape[1] == 1
             if not last_layer:
                 x = self.relu(x)

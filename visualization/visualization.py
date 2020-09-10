@@ -177,7 +177,7 @@ class Plotter:
                 color="y",
                 head_width=int(plot_size / 12),
                 width=2,
-                head_starts_at_zero=True
+                head_starts_at_zero=True,
             )
 
             self.direction_arrow_handle = self.plane_plot.arrow(
@@ -448,7 +448,7 @@ class Plotter:
     # SOCKET FUNCTIONS
     def _open_socket(self, host: str, port: int):
         if self.printouts:
-            print("[INFO] Waiting for connection")
+            print(f"[INFO] Waiting for connection on {host}:{port}")
         timer = 0
         while timer < 60:
             try:

@@ -187,6 +187,10 @@ class DataHandler:
         self.pid = self.pid[1:, :]
         self.setpoints = self.setpoints[1:, :]
 
+        for c in self.conn:
+            c.shutdown(1)
+            c.close()
+
         # save data
         self._save_csv()
         self._save_npy()
@@ -199,7 +203,7 @@ class DataHandler:
 
     def _open_server(self, host, port):
         if self.printouts:
-            print("[INFO] Starting up server")
+            print(f"[INFO] Starting up server on {host}:{port}")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.bind((host, port))

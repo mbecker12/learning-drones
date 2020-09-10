@@ -9,6 +9,13 @@ from drone.onboard_computer import ControlUnit
 # from drone.onboard_computer import ControlUnit
 delta_t = 0.01
 
+REWARD_CRASHED = -3000
+REWARD_TIME_PASSED = 2
+REWARD_COIN_DISTANCE = lambda d: -100 * int(d)
+REWARD_UNSTABLE = -1
+ANGLE_LIMIT = np.pi / 4  # radians
+ANGLE_VEL_LIMIT = 20
+
 
 class Drone(ControlUnit):
     def __init__(
@@ -55,31 +62,65 @@ class Drone(ControlUnit):
             ]
         )
 
-        self.controller = NeuralNetwork(layer_spec={1: 8, 2: 10, 3: 4})
+        self.controller = NeuralNetwork(layer_spec={1: 10, 2: 10, 3: 4})
 
+        self.distance_to_coin = np.Infinity
         self.reward = 0
+        self.coins = 0
+        self.flight_time = 0
+        self.crashed = False
         self.position = initial_pos
         self.velocity = initial_vel
         self.angle = initial_angle
         self.angle_vel = initial_angle_vel
         self.thrust = initial_thrust
 
+    def enable_visualization(self, visualize, n_servers, port, dir_name="./rewatch"):
+        self.dh = DataHandler(
+            parentfolder=dir_name,
+            visualize=visualize,
+            n_servers=n_servers,
+            port=port,
+        )
+
     def translate_input_to_thrust(self, coin_position):
         self.thrust = self.controller.translate_input_to_thrust(
-            self.position, self.velocity, self.angle, self.angle_vel, coin_position,
+            self.position,
+            self.velocity,
+            self.angle,
+            self.angle_vel,
+            coin_position,
         )
 
     def status_update(self, time, lin_targets=None):
         print(f"time: {time}")
-        print(f"position: \n{self.position}")
-        print(f"velocity: \n{self.velocity}")
-        print(f"angle: \n{self.angle}")
-        print(f"angle velocity: \n{self.angle_vel}")
-        print(f"thrust: \n{self.thrust}")
+
+        pos_title = "position:".ljust(25)
+        vel_title = "velocity:".rjust(25)
+        print(pos_title + vel_title)
+        for i in range(3):
+            print(
+                f"{self.position[i, 0]}".ljust(25) + f"{self.velocity[i, 0]}".rjust(25)
+            )
+        print()
+        angle_title = "angle:".ljust(25)
+        angle_vel_title = "angular velocity:".rjust(25)
+        print(angle_title + angle_vel_title)
+        for i in range(3):
+            print(f"{self.angle[i, 0]}".ljust(25) + f"{self.angle_vel[i, 0]}".rjust(25))
+
+        print("\nthrust:")
+        thrust_string = ""
+        for i in range(4):
+            thrust_string += f"{self.thrust[i]}\t"
+        print(thrust_string)
+        print()
+
         if lin_targets is not None:
             print(f"x_target: {lin_targets[-3]}")
             print(f"y_target: {lin_targets[-2]}")
             print(f"z_target: {lin_targets[-1]}")
+            print()
 
     def new_data(self, real_time, wind_speed):
         pid_outputs = np.zeros([6, 1])
@@ -113,10 +154,21 @@ class Drone(ControlUnit):
             self.angle_vel,
         ) = get_positions_and_angles(self.sensors)
 
-        if self.position[-1] <= 0:
+        if self.position[-1, 0] <= 0 or self.position[-1, 0] > 80:
             # print("Oops! Crashed into the ground!")
-            self.reward -= 10000
+            self.reward += REWARD_CRASHED
+            self.crashed = True
             return True
+
+        # punishment for overly unstable flight.
+        # check both roll and pitch and yaw speed
+        # punish each condition separately
+        if np.abs(self.angle[0, 0]) > ANGLE_LIMIT:
+            self.reward += REWARD_UNSTABLE
+        if np.abs(self.angle[1, 0]) > ANGLE_LIMIT:
+            self.reward += REWARD_UNSTABLE
+        if np.abs(self.angle_vel[2, 0]) > ANGLE_VEL_LIMIT:
+            self.reward += REWARD_UNSTABLE
         return False
 
     def mutate(self, mutation_rate):
@@ -130,7 +182,11 @@ class Drone(ControlUnit):
         self.reward = 0
 
     def reset(self):
+        self.distance_to_coin = np.Infinity
         self.reward = 0
+        self.crashed = False
+        self.coins = 0
+        self.flight_time = 0
         self.position = np.array(initial_pos)
         self.velocity = np.array(initial_vel)
         self.angle = np.array(initial_angle)
