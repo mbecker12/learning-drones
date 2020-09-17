@@ -19,10 +19,11 @@ from multiprocessing import Manager
 
 # from multiprocessing import shared_memory
 
-n_generations = 250
+n_generations = 500
 n_drones = 40
-mutation_rate = 0.05
-p_tournament = 0.6
+mutation_rate0 = 0.2
+mutation_rate_decay = 0.999
+p_tournament = 0.8
 p_crossover = 0.3
 n_executions = 5
 
@@ -56,6 +57,7 @@ if __name__ == "__main__":
 
     start_time = time()
     for gen in range(n_generations):
+        mutation_rate = mutation_rate0 * mutation_rate_decay ** gen
         generation_time = time() - start_time
         print(f"Time elapsed for last generation: {generation_time}")
         start_time = time()
