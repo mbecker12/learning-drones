@@ -1,11 +1,6 @@
 import os
 from time import sleep
-from drone.drone import (
-    Drone,
-    REWARD_TIME_PASSED,
-    REWARD_COIN_DISTANCE,
-    REWARD_TRAVEL
-)
+from drone.drone import Drone, REWARD_TIME_PASSED, REWARD_COIN_DISTANCE, REWARD_TRAVEL
 from objects.coins import Coin
 from drone.quadcopter.parameters import *
 
@@ -122,9 +117,13 @@ def fly(
             drone.reward += REWARD_COIN_DISTANCE(
                 coin.distance_drone_to_coin(drone.position)
             )
-            drone.reward += np.sqrt(
-                drone.position[0, 0] * drone.position[0, 0] +
-                drone.position[1, 0] * drone.position[1, 0]) * REWARD_TRAVEL
+            drone.reward += (
+                np.sqrt(
+                    drone.position[0, 0] * drone.position[0, 0]
+                    + drone.position[1, 0] * drone.position[1, 0]
+                )
+                * REWARD_TRAVEL
+            )
             drone.distance_to_coin = coin.distance_drone_to_coin(drone.position)
             return drone.reward, real_time, idx
 
@@ -138,7 +137,11 @@ def fly(
         drone.dh.finish(drone.reward, quit_program=False)
     drone.reward += REWARD_COIN_DISTANCE(coin.distance_drone_to_coin(drone.position))
     drone.distance_to_coin = coin.distance_drone_to_coin(drone.position)
-    drone.reward += np.sqrt(
-                drone.position[0, 0] * drone.position[0, 0] +
-                drone.position[1, 0] * drone.position[1, 0]) * REWARD_TRAVEL
+    drone.reward += (
+        np.sqrt(
+            drone.position[0, 0] * drone.position[0, 0]
+            + drone.position[1, 0] * drone.position[1, 0]
+        )
+        * REWARD_TRAVEL
+    )
     return drone.reward, real_time, idx

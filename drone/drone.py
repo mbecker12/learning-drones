@@ -63,7 +63,9 @@ class Drone(ControlUnit):
             ]
         )
 
-        self.controller = NeuralNetwork(layer_spec={1: 128, 2: 64, 3: 32, 4: 16, 5: 4}, n_inputs=12)
+        self.controller = NeuralNetwork(
+            layer_spec={1: 128, 2: 64, 3: 32, 4: 16, 5: 4}, n_inputs=12
+        )
 
         self.distance_to_coin = np.Infinity
         self.reward = 0
