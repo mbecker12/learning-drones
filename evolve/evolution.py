@@ -3,8 +3,10 @@ from copy import deepcopy
 import sys
 from time import sleep, time
 import traceback
+import os
+sys.path.append(os.getcwd())
+#sys.path.append("/home/marvin/Projects/Drones")
 
-sys.path.append("/home/marvin/Projects/Drones")
 from drone.drone import Drone
 from evolve.util import (
     selection_and_crossover,
