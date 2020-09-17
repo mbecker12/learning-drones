@@ -10,11 +10,12 @@ from drone.onboard_computer import ControlUnit
 delta_t = 0.01
 
 REWARD_CRASHED = -3000
-REWARD_TIME_PASSED = 2
+REWARD_TIME_PASSED = 5
 REWARD_COIN_DISTANCE = lambda d: -100 * int(d)
 REWARD_UNSTABLE = -5
 ANGLE_LIMIT = np.pi / 4  # radians
 ANGLE_VEL_LIMIT = 20
+REWARD_TRAVEL = 50
 
 
 class Drone(ControlUnit):
@@ -62,7 +63,7 @@ class Drone(ControlUnit):
             ]
         )
 
-        self.controller = NeuralNetwork(layer_spec={1: 128, 2: 64, 3: 32, 4: 16, 5: 4})
+        self.controller = NeuralNetwork(layer_spec={1: 128, 2: 64, 3: 32, 4: 16, 5: 4}, n_inputs=12)
 
         self.distance_to_coin = np.Infinity
         self.reward = 0
@@ -85,7 +86,7 @@ class Drone(ControlUnit):
 
     def translate_input_to_thrust(self, coin_position):
         self.thrust = self.controller.translate_input_to_thrust(
-            self.position, self.velocity, self.angle, self.angle_vel, coin_position,
+            self.position - coin_position, self.velocity, self.angle, self.angle_vel,
         )
 
     def status_update(self, time, lin_targets=None):
@@ -179,7 +180,7 @@ class Drone(ControlUnit):
             for j, row in enumerate(layer):
                 for k, w in enumerate(row):
                     if np.random.random_sample() < mutation_rate:
-                        self.controller.weights[i][j][k] += np.random.normal(0.0, 0.3)
+                        self.controller.weights[i][j][k] += np.random.normal(0.0, 0.1)
 
     def reset_reward(self):
         self.reward = 0

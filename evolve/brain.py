@@ -68,20 +68,18 @@ class NeuralNetwork(ControlUnit):
 
     def translate_input_to_thrust(
         self,
-        drone_position,
+        drone_distance_to_coin,
         drone_velocity,
         drone_angle,
         drone_angle_velocity,
-        coin_position,
     ):
 
         network_inputs = np.vstack(
             (
-                drone_position,
+                drone_distance_to_coin,
                 drone_velocity,
                 drone_angle,
-                drone_angle_velocity,
-                coin_position,
+                drone_angle_velocity
             )
         )
 
