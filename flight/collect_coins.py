@@ -15,7 +15,7 @@ from drone.sensor.sensor import Sensor, get_positions_and_angles
 from time import sleep
 from drone.utility import *
 from drone.quadcopter.choose_paramset import *
-from drone.onboard_computer import PIDControlUNnit
+from drone.onboard_computer import PIDControlUNnit, StraightAhead
 import sys
 from objects.coins import Coin
 
@@ -203,7 +203,8 @@ if __name__ == "__main__":
         I_z=I_z,
     )
 
-    controller = PIDControlUNnit(np.concatenate([lin_pids, rot_pids]), quadcopter)
+    # controller = PIDControlUNnit(np.concatenate([lin_pids, rot_pids]), quadcopter)
+    controller = StraightAhead(np.concatenate([lin_pids, rot_pids]), quadcopter)
 
     # Initialize Values
     wind_speed = initial_wind_speed

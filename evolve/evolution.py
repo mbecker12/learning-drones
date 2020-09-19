@@ -5,8 +5,8 @@ from time import sleep, time
 import traceback
 import os
 
+# possibly bad style, but it works...
 sys.path.append(os.getcwd())
-# sys.path.append("/home/marvin/Projects/Drones")
 
 from drone.drone import Drone
 from evolve.util import (
@@ -43,11 +43,6 @@ def thread_error_prompt(err):
 
 
 if __name__ == "__main__":
-    # drone = Drone(visualize=False, n_servers=0)
-    # sleep(2)
-    # fly(drone)
-    # exit()
-
     execution_time = int(time())
     drones = [Drone(visualize=False, n_servers=0) for _ in range(n_drones)]
     scores = [0] * n_drones
