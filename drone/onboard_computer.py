@@ -41,6 +41,51 @@ class ControlUnit(abc.ABC):
     ):
         return NotImplementedError
 
+class StraightAhead(ControlUnit):
+    def __init__(self, pids: list, quadcopter: QuadcopterPhysics):
+        """
+        Test module to verify that the physics model works correct.
+        """
+        # self.qc = quadcopter
+        self.time_step = 0
+        pass
+
+    def translate_input_to_thrust(
+        self,
+        diff_coin_drone,
+        lab_lin_vel,
+        drone_angle,
+        drone_angle_vel,
+        # rotation,
+        lin_pids=None,
+        rot_pids=None,
+    ):
+        self.time_step += 1
+        print(f"self.time_step: {self.time_step}")
+        modulo_value = 30
+        if self.time_step % modulo_value <= int(modulo_value / 2):
+
+            thrust = np.array(
+                [
+                    [0.3],
+                    [0.5],
+                    [0.5],
+                    [0.3]
+                ]
+            )
+        else:
+            thrust = np.array(
+                [
+                    [0.5],
+                    [0.3],
+                    [0.3],
+                    [0.5]
+                ]
+            )
+        return thrust
+
+
+
 
 class PIDControlUNnit(ControlUnit):
     def __init__(self, pids: list, quadcopter: QuadcopterPhysics):

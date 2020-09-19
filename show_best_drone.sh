@@ -7,6 +7,10 @@ tab=" --tab-with-profile=Default"
 tab=" --tab"
 options=(--tab --title=Terminal)
 timestamp=$1
+if [ -z $timestamp ]
+then
+  timestamp=123
+fi
 
 visualize=1
 num_servers=1
