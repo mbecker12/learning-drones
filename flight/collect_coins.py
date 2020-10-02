@@ -130,7 +130,7 @@ if __name__ == "__main__":
             timeStep=delta_t,
             setValue=roll_target * np.pi / 180,
             integralRange=2,
-            calculateFlag="signChange",
+            calculateFlag="velocity",
             outputLimitRange=[-np.pi / 4, np.pi / 4],
         ),
         PID(
@@ -140,7 +140,7 @@ if __name__ == "__main__":
             timeStep=delta_t,
             setValue=pitch_target * np.pi / 180,
             integralRange=2,
-            calculateFlag="signChange",
+            calculateFlag="velocity",
             outputLimitRange=[-np.pi / 4, np.pi / 4],
         ),
         PID(
@@ -150,7 +150,7 @@ if __name__ == "__main__":
             timeStep=delta_t,
             setValue=yaw_target * np.pi / 180,
             integralRange=2,
-            calculateFlag="signChange",
+            calculateFlag="velocity",
             outputLimitRange=[-np.pi / 6, np.pi / 6],
         ),
     ]
@@ -163,7 +163,7 @@ if __name__ == "__main__":
             timeStep=delta_t,
             setValue=x_target,
             integralRange=2,
-            calculateFlag="signChange",
+            calculateFlag="velocity",
             outputLimitRange=[-np.pi / 4, np.pi / 4],
         ),
         PID(
@@ -173,7 +173,7 @@ if __name__ == "__main__":
             timeStep=delta_t,
             setValue=y_target,
             integralRange=2,
-            calculateFlag="signChange",
+            calculateFlag="velocity",
             outputLimitRange=[-np.pi / 4, np.pi / 4],
         ),
         PID(
@@ -183,7 +183,7 @@ if __name__ == "__main__":
             timeStep=delta_t,
             setValue=z_target,
             integralRange=2,
-            calculateFlag="signChange",
+            calculateFlag="velocity",
         ),
     ]
 
@@ -203,8 +203,8 @@ if __name__ == "__main__":
         I_z=I_z,
     )
 
-    # controller = PIDControlUNnit(np.concatenate([lin_pids, rot_pids]), quadcopter)
-    controller = StraightAhead(np.concatenate([lin_pids, rot_pids]), quadcopter)
+    controller = PIDControlUNnit(np.concatenate([lin_pids, rot_pids]), quadcopter)
+    # controller = StraightAhead(np.concatenate([lin_pids, rot_pids]), quadcopter)
 
     # Initialize Values
     wind_speed = initial_wind_speed
