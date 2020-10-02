@@ -15,7 +15,8 @@ def set_coin_successively(run_idx, radius_sq=50, height=10, total_runs=5):
 
 
 def set_coin_delta(run_idx, radius_sq=50, total_runs=5):
-    phi = run_idx / total_runs * 2 * np.pi + np.random.normal(0.0, 0.1)
+    # TODO: find a way to randomize new coin positions
+    phi = run_idx / total_runs * 2 * np.pi  # + np.random.normal(0.0, 0.1)
     delta_x = np.sqrt(radius_sq) * np.cos(phi)
     delta_y = np.sqrt(radius_sq) * np.sin(phi)
     delta_z = np.random.normal(0.0, 1.0)
