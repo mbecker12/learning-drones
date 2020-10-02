@@ -1,9 +1,10 @@
+import torch
 import numpy as np
 from drone.quadcopter.physical_model import QuadcopterPhysics
 from drone.sensor.sensor import Sensor, get_positions_and_angles
 from drone.quadcopter.parameters import *
 from datahandling.data_scraper import DataHandler
-from evolve.brain import NeuralNetwork
+from evolve.brain import NeuralNetwork, DroneBrain
 from drone.onboard_computer import ControlUnit
 
 # from drone.onboard_computer import ControlUnit
@@ -16,6 +17,9 @@ REWARD_UNSTABLE = -5
 ANGLE_LIMIT = np.pi / 4  # radians
 ANGLE_VEL_LIMIT = 20
 REWARD_TRAVEL = 50
+
+ZERO_POINT_ZERO = torch.zeros(1, dtype=torch.float32)
+ZERO_POINT_ONE = torch.ones(1, dtype=torch.float32) * 0.1
 
 
 class Drone(ControlUnit):
@@ -63,9 +67,20 @@ class Drone(ControlUnit):
             ]
         )
 
-        self.controller = NeuralNetwork(
-            layer_spec={1: 128, 2: 64, 3: 32, 4: 16, 5: 4}, n_inputs=12
+        # self.controller = NeuralNetwork(
+        #     layer_spec={1: 128, 2: 64, 3: 32, 4: 16, 5: 4}, n_inputs=12
+        # )
+
+        self.controller = DroneBrain(
+            n_inputs=12,
+            n_neurons1=128,
+            n_neurons2=256,
+            n_neurons3=128,
+            n_neurons4=64,
+            n_outputs=4,
         )
+
+        self.controller.load_state_dict(torch.load("pretrained_drone_brain_wide"))
 
         self.distance_to_coin = np.Infinity
         self.reward = 0
@@ -88,7 +103,7 @@ class Drone(ControlUnit):
 
     def translate_input_to_thrust(self, coin_position):
         self.thrust = self.controller.translate_input_to_thrust(
-            self.position - coin_position, self.velocity, self.angle, self.angle_vel,
+            coin_position - self.position, self.velocity, self.angle, self.angle_vel,
         )
 
     def status_update(self, time, lin_targets=None):
@@ -178,11 +193,23 @@ class Drone(ControlUnit):
         return False
 
     def mutate(self, mutation_rate):
-        for i, layer in enumerate(self.controller.weights):
-            for j, row in enumerate(layer):
-                for k, w in enumerate(row):
-                    if np.random.random_sample() < mutation_rate:
-                        self.controller.weights[i][j][k] += np.random.normal(0.0, 0.1)
+        if isinstance(self.controller, torch.nn.Module):
+            for name, param in self.controller.named_parameters():
+                for par in param:
+                    uniform_random_vector = torch.rand(par.shape)
+                    mutation_mask = uniform_random_vector < mutation_rate
+                    normal_values = torch.normal(0.0, 0.1, size=par.shape)
+                    mutation_deltas = torch.mul(mutation_mask, normal_values)
+                    par += mutation_deltas
+
+        else:
+            for i, layer in enumerate(self.controller.weights):
+                for j, row in enumerate(layer):
+                    for k, w in enumerate(row):
+                        if np.random.random_sample() < mutation_rate:
+                            self.controller.weights[i][j][k] += np.random.normal(
+                                0.0, 0.1
+                            )
 
     def reset_reward(self):
         self.reward = 0
