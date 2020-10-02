@@ -3,7 +3,7 @@ import time
 import json
 import jsonpickle
 from drone.drone import Drone
-from drone.onboard_computer import StraightAhead 
+from drone.onboard_computer import StraightAhead
 from flight import fly
 
 if __name__ == "__main__":
@@ -11,7 +11,7 @@ if __name__ == "__main__":
         timestamp = sys.argv[1]
     else:
         timestamp = None
-    port = 65432 
+    port = 65432
     if len(sys.argv) >= 3:
         port = int(sys.argv[2])
 
@@ -36,7 +36,6 @@ if __name__ == "__main__":
     #     )
     # print(drone.controller.layer_spec)
     # print(drone.controller.__dict__)
-
 
     time.sleep(2)
     fly(drone, n_servers=2, visualize=True)
