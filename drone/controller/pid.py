@@ -36,10 +36,35 @@ class PID:
             "noFlush": self.calculate_no_clear,
             "signChange": self.calculate_error_sign,
             "rangeExit": self.calculate_range_exit,
+            "velocity": self.calculate_with_velocity,
         }
         self.calculate = self.calculateDictionary[calculateFlag]
 
-    def calculate_no_clear(self, controlValue):
+    def calculate_with_velocity(self, controlValue, velocity):
+        """
+        This is a method to calculate output without flushing of error.
+        The derivative part at the first time of calculate call is 0.
+        :param controlValue: PV
+        """
+        error = self.setValue - controlValue
+        self.accumulate_error(error)
+
+        if self.previousControlVal != 0:
+            controlValDiff = controlValue - self.previousControlVal
+        else:
+            controlValDiff = 0
+
+        output = (
+            self.kp * error
+            + self.ki * self.integralError * self.dt
+            - self.kd * velocity
+        )
+        self.previousControlVal = controlValue
+
+        return self.check_output(output)
+
+    # use placeholder variable velocity to support calculate_with_velocity()
+    def calculate_no_clear(self, controlValue, velocity=None):
         """
         This is a method to calculate output without flushing of error.
         The derivative part at the first time of calculate call is 0.
@@ -60,21 +85,9 @@ class PID:
         )
         self.previousControlVal = controlValue
 
-        if self.previousControlVal != 0:
-            controlValDiff = controlValue - self.previousControlVal
-        else:
-            controlValDiff = 0
-
-        output = (
-            self.kp * error
-            + self.ki * self.integralError * self.dt
-            - self.kd * controlValDiff / self.dt
-        )
-        self.previousControlVal = controlValue
-
         return self.check_output(output)
 
-    def calculate_error_sign(self, controlValue):
+    def calculate_error_sign(self, controlValue, velocity=None):
         """
         Calculate but flush error when the previous error and the current error have different signs.
         (When error is 0 it is not stored as previous error)
@@ -105,7 +118,7 @@ class PID:
 
         return self.check_output(output)
 
-    def calculate_range_exit(self, controlValue):
+    def calculate_range_exit(self, controlValue, velocity=None):
         """
         Same calculate, but flush error when error is greater than the integral range.
         """
