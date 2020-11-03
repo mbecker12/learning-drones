@@ -41,11 +41,7 @@ class DroneBrain(nn.Module):
         return torch.sigmoid(x).reshape(-1, 1).detach().numpy()
 
     def translate_input_to_thrust(
-        self,
-        drone_distance_to_coin,
-        drone_velocity,
-        drone_angle,
-        drone_angle_velocity,
+        self, drone_distance_to_coin, drone_velocity, drone_angle, drone_angle_velocity,
     ):
 
         network_inputs = np.vstack(
@@ -115,11 +111,7 @@ class NeuralNetwork(ControlUnit):
         return x
 
     def translate_input_to_thrust(
-        self,
-        drone_distance_to_coin,
-        drone_velocity,
-        drone_angle,
-        drone_angle_velocity,
+        self, drone_distance_to_coin, drone_velocity, drone_angle, drone_angle_velocity,
     ):
 
         network_inputs = np.vstack(

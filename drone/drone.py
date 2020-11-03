@@ -51,11 +51,15 @@ class Drone(ControlUnit):
             I_z=I_z,
         )
 
+        self.visualize = visualize
+        self.n_servers = n_servers
+        self.port = port
+
         self.dh = DataHandler(
             parentfolder="./evolution",
-            visualize=visualize,
-            n_servers=n_servers,
-            port=port,
+            visualize=self.visualize,
+            n_servers=self.n_servers,
+            port=self.port,
         )
 
         self.sensors = [
@@ -106,18 +110,12 @@ class Drone(ControlUnit):
     def enable_visualization(self, visualize, n_servers, port, dir_name="./rewatch"):
         del self.dh
         self.dh = DataHandler(
-            parentfolder=dir_name,
-            visualize=visualize,
-            n_servers=n_servers,
-            port=port,
+            parentfolder=dir_name, visualize=visualize, n_servers=n_servers, port=port,
         )
 
     def translate_input_to_thrust(self, coin_position):
         self.thrust = self.controller.translate_input_to_thrust(
-            coin_position - self.position,
-            self.velocity,
-            self.angle,
-            self.angle_vel,
+            coin_position - self.position, self.velocity, self.angle, self.angle_vel,
         )
 
     def status_update(self, time, lin_targets=None):
@@ -284,4 +282,11 @@ class Drone(ControlUnit):
             I_x=I_x,
             I_y=I_y,
             I_z=I_z,
+        )
+
+        self.dh = DataHandler(
+            parentfolder="./evolution",
+            visualize=visualize,
+            n_servers=n_servers,
+            port=port,
         )

@@ -190,6 +190,7 @@ if __name__ == "__main__":
 
         elitism_time = time()
         drones = new_population
+        del new_population
 
         with open(f"evolution/best_drone_{execution_time}.json") as jsonfile:
             jsonstring = json.load(jsonfile)
