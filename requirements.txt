@@ -2,5 +2,5 @@ numpy
 matplotlib
 vtk
 jsonpickle
-torch
+torch==1.5.0
 pyyaml
