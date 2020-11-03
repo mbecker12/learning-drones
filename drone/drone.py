@@ -11,9 +11,9 @@ from drone.onboard_computer import ControlUnit
 delta_t = 0.01
 
 REWARD_CRASHED = -3000
-REWARD_TIME_PASSED = 5
+REWARD_TIME_PASSED = -1
 REWARD_COIN_DISTANCE = lambda d: -100 * int(d)
-REWARD_UNSTABLE = -5
+REWARD_UNSTABLE = -3
 ANGLE_LIMIT = np.pi / 4  # radians
 ANGLE_VEL_LIMIT = 20
 REWARD_TRAVEL = 50
@@ -32,6 +32,7 @@ class Drone(ControlUnit):
         initial_vel=np.array([[0.0], [0.0], [0.0]]),
         initial_angle=np.array([[0.0], [0.0], [0.0]]),
         initial_angle_vel=np.array([[0.0], [0.0], [0.0]]),
+        n_runs=8,
     ):
 
         self.quadcopter = QuadcopterPhysics(
@@ -80,7 +81,7 @@ class Drone(ControlUnit):
             n_outputs=4,
         )
 
-        self.controller.load_state_dict(torch.load("pretrained_drone_brain_wide"))
+        self.controller.load_state_dict(torch.load("pretrained_velocity_noflush_short"))
 
         self.distance_to_coin = np.Infinity
         self.reward = 0
@@ -95,15 +96,28 @@ class Drone(ControlUnit):
         self.lab_lin_acc = None
         self.lab_rot_acc = None
 
+        # get stats for all <n_runs> runs
+        self.distances_to_coin = []
+        self.rewards = []
+        self.coins_collected = []
+        self.flight_times = []
+        self.runs_crashed = []
+
     def enable_visualization(self, visualize, n_servers, port, dir_name="./rewatch"):
         del self.dh
         self.dh = DataHandler(
-            parentfolder=dir_name, visualize=visualize, n_servers=n_servers, port=port,
+            parentfolder=dir_name,
+            visualize=visualize,
+            n_servers=n_servers,
+            port=port,
         )
 
     def translate_input_to_thrust(self, coin_position):
         self.thrust = self.controller.translate_input_to_thrust(
-            coin_position - self.position, self.velocity, self.angle, self.angle_vel,
+            coin_position - self.position,
+            self.velocity,
+            self.angle,
+            self.angle_vel,
         )
 
     def status_update(self, time, lin_targets=None):
@@ -198,7 +212,7 @@ class Drone(ControlUnit):
                 for par in param:
                     uniform_random_vector = torch.rand(par.shape)
                     mutation_mask = uniform_random_vector < mutation_rate
-                    normal_values = torch.normal(0.0, 0.1, size=par.shape)
+                    normal_values = torch.normal(0.0, 0.05, size=par.shape)
                     mutation_deltas = torch.mul(mutation_mask, normal_values)
                     par += mutation_deltas
 
@@ -214,7 +228,20 @@ class Drone(ControlUnit):
     def reset_reward(self):
         self.reward = 0
 
+    def reset_accumulated_stats(self):
+        self.distances_to_coin = []
+        self.rewards = []
+        self.coins_collected = []
+        self.flight_times = []
+        self.runs_crashed = []
+
     def reset(self):
+        self.distances_to_coin.append(self.distance_to_coin)
+        self.rewards.append(self.reward)
+        self.coins_collected.append(self.coins)
+        self.flight_times.append(self.flight_time)
+        self.runs_crashed.append(self.crashed)
+
         self.distance_to_coin = np.Infinity
         self.reward = 0
         self.crashed = False

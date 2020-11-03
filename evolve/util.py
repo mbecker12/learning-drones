@@ -103,3 +103,7 @@ def compare_weights(weights1, weights2):
                 assert (
                     w == weights2[i][j][k]
                 ), f"i: {i}, j: {j}, k: {k}, w1: {w}, w2: {weights2[i][j][k]}"
+
+
+def avg_of_list(statistics: list):
+    return sum(statistics) / len(statistics)

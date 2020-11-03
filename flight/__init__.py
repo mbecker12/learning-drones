@@ -3,34 +3,11 @@ from time import sleep
 from drone.drone import Drone, REWARD_TIME_PASSED, REWARD_COIN_DISTANCE, REWARD_TRAVEL
 from objects.coins import Coin
 from drone.quadcopter.parameters import *
-
-
-def set_coin_successively(run_idx, radius_sq=50, height=10, total_runs=5):
-    phi = run_idx / total_runs * 2 * np.pi
-    x = np.sqrt(radius_sq) * np.cos(phi)
-    y = np.sqrt(radius_sq) * np.sin(phi)
-    z = height
-
-    return np.array([[x], [y], [z]])
-
-
-def set_coin_delta(run_idx, radius_sq=50, total_runs=5):
-    # TODO: find a way to randomize new coin positions
-    phi = run_idx / total_runs * 2 * np.pi  # + np.random.normal(0.0, 0.1)
-    delta_x = np.sqrt(radius_sq) * np.cos(phi)
-    delta_y = np.sqrt(radius_sq) * np.sin(phi)
-    delta_z = np.random.normal(0.0, 1.0)
-
-    return np.array([[delta_x], [delta_y], [delta_z]])
-
-
-def set_coin_position_on_radius(radius_sq=50, height=10):
-    phi = np.random.random_sample() * 2 * np.pi
-    x = np.sqrt(radius_sq) * np.cos(phi)
-    y = np.sqrt(radius_sq) * np.sin(phi)
-    z = height
-
-    return np.array([[x], [y], [z]])
+from flight.util import (
+    set_coin_successively,
+    set_coin_delta,
+    set_coin_position_on_radius,
+)
 
 
 def fly(
@@ -44,16 +21,22 @@ def fly(
     idx=None,
     run_idx=1,
     total_runs=1,
+    choreo=None,
 ):
 
-    # print(f"flying in PID: {os.getpid()}")
-    # initialize coin
-    coin_position = set_coin_successively(
-        run_idx, radius_sq=50, height=10, total_runs=total_runs
-    )
-    # print(run_idx, coin_position)
-    coin = Coin(coin_position, 2, 1000)
-    # coin = Coin(np.array([[5], [5], [10]]), 2, 1000)
+    if choreo is None:
+        # print(f"flying in PID: {os.getpid()}")
+        # initialize coin
+        coin_position = set_coin_successively(
+            run_idx, radius_sq=50, height=10, total_runs=total_runs
+        )
+        # print(run_idx, coin_position)
+        coin = Coin(coin_position, 2, 1000)
+        # coin = Coin(np.array([[5], [5], [10]]), 2, 1000)
+    else:
+        coin_position = np.array([[choreo[0]["x"]], [choreo[0]["y"]], [choreo[0]["z"]]])
+        coin = Coin(coin_position, choreo[0]["radius"], 1000)
+        coin_index = 0
 
     # initialize drone position
     wind_speed = initial_wind_speed
@@ -80,16 +63,47 @@ def fly(
             drone.reward += coin.value
             drone.coins += 1
 
-            # coin = Coin(coin.position + np.array([[5.0], [2.5], [0.0]]), 2, value=2000)
-            coin_pos_delta = set_coin_delta(
-                run_idx, radius_sq=50, total_runs=total_runs
-            )
-            coin = Coin(coin.position + coin_pos_delta, 2, value=2000)
-            # coin = Coin(
-            #     coin.position + (10 * np.random.random_sample(coin.position.shape)),
-            #     1,
-            #     value=1000
-            #     )
+            if choreo is None:
+                # coin = Coin(coin.position + np.array([[5.0], [2.5], [0.0]]), 2, value=2000)
+                coin_pos_delta = set_coin_delta(
+                    run_idx, radius_sq=50, total_runs=total_runs
+                )
+                new_position = coin.position + coin_pos_delta
+                if new_position[2, 0] < 0.1:
+                    new_position[2, 0] = 0.1
+
+                coin = Coin(new_position, 2, value=2000)
+
+            else:
+                coin_index += 1
+                if coin_index > len(choreo):
+                    drone.dh.finish()
+                    drone.reward += REWARD_COIN_DISTANCE(
+                        coin.distance_drone_to_coin(drone.position)
+                    )
+                    drone.reward += (
+                        np.sqrt(
+                            drone.position[0, 0] * drone.position[0, 0]
+                            + drone.position[1, 0] * drone.position[1, 0]
+                        )
+                        * REWARD_TRAVEL
+                    )
+                    drone.distance_to_coin = coin.distance_drone_to_coin(drone.position)
+                    return drone.reward, real_time, idx
+
+                coin_position = np.array(
+                    [
+                        [choreo[coin_index]["x"]],
+                        [choreo[coin_index]["y"]],
+                        [choreo[coin_index]["z"]],
+                    ]
+                )
+                coin = Coin(
+                    coin_position,
+                    choreo[coin_index]["radius"],
+                    choreo[coin_index]["value"],
+                )
+
             lin_targets = coin.position
             if visualize:
                 drone.dh.new_setpoints(rot_targets, lin_targets)

@@ -3,3 +3,4 @@ matplotlib
 vtk
 jsonpickle
 torch
+pyyaml

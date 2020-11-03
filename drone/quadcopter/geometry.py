@@ -51,7 +51,7 @@ def rotation_matrix_2d(alpha):
 
 def translational_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
     """
-    Calculate the rotational matrix to convert angular velocities 
+    Calculate the rotational matrix to convert angular velocities
     from drone-frame to inertial frame.
     :param roll: rot around x
     :param pitch: rot around y

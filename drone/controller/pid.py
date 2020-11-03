@@ -14,13 +14,13 @@ class PID:
         integralRange: float = 2,
         outputLimitRange=[-1, 1],
     ):
-        """ PID class, where ki = kp/ti and kd = kp*td  constants set  from the parameters.py file
-            :param setValue  is the value we want the PID to reach
+        """PID class, where ki = kp/ti and kd = kp*td  constants set  from the parameters.py file
+        :param setValue  is the value we want the PID to reach
 
-            :param calculateFlag is  string that corresponds to a differentiation of the calculate function with the help
-            of a dictionary defined in the constructor as calculateDictionary
-            :param outputLimitRange is an array with the limits of the output, will be set constant values in the parameters file
-            :function calculate is the method we use to find the output of the PID
+        :param calculateFlag is  string that corresponds to a differentiation of the calculate function with the help
+        of a dictionary defined in the constructor as calculateDictionary
+        :param outputLimitRange is an array with the limits of the output, will be set constant values in the parameters file
+        :function calculate is the method we use to find the output of the PID
         """
         self.kp = kp
         self.ki = ki
