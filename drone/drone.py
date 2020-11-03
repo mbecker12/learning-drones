@@ -286,7 +286,7 @@ class Drone(ControlUnit):
 
         self.dh = DataHandler(
             parentfolder="./evolution",
-            visualize=visualize,
-            n_servers=n_servers,
-            port=port,
+            visualize=self.visualize,
+            n_servers=self.n_servers,
+            port=self.port,
         )
