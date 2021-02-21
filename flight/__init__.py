@@ -76,7 +76,7 @@ def fly(
 
             else:
                 coin_index += 1
-                if coin_index > len(choreo):
+                if coin_index >= len(choreo):
                     drone.dh.finish()
                     drone.reward += REWARD_COIN_DISTANCE(
                         coin.distance_drone_to_coin(drone.position)
