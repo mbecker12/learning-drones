@@ -6,17 +6,21 @@ import yaml
 from time import sleep, time
 import traceback
 import os
+import tracemalloc
+tracemalloc.start(100)
 
 # possibly bad style, but it works...
 sys.path.append(os.getcwd())
 
 from drone.drone import Drone
+from evolve.brain import DroneBrain
 from evolve.util import (
     selection_and_crossover,
     tournament_select,
     get_best_of_generation,
     avg_of_list,
 )
+
 from flight import fly
 import jsonpickle
 import json
@@ -67,11 +71,13 @@ def thread_error_prompt(err):
 # in order for elitism to work properly
 
 if __name__ == "__main__":
+    time1 = tracemalloc.take_snapshot()
     init_time = time()
     execution_time = int(time())
     logger.info(f"Starting neuroevolution with execution time {execution_time}")
     drones = [Drone(visualize=False, n_servers=0) for _ in range(n_drones)]
-    scores = [0] * n_drones
+    avg_scores = [0] * n_drones
+    min_scores = [0] * n_drones
     times = [0] * n_drones
 
     with open("choreo.yaml") as choreo_file:
@@ -87,6 +93,9 @@ if __name__ == "__main__":
 
     global_best_score = -np.Infinity
     global_best_drone = None
+
+    global_best_min_score = -np.Infinity
+    global_best_min_drone = None
 
     thread_pool = ThreadPool(1)
 
@@ -125,45 +134,66 @@ if __name__ == "__main__":
                 avg_flight_time += flight_time
                 drone.reset()
 
-                # if score < min_score:
-                #     min_score = score
+                if score < min_score:
+                    min_score = score
                 # TODO: implement elitism with minimum score as well
                 # Credits to Elsa
 
-            scores[idx] = avg_score / n_executions
+            avg_scores[idx] = avg_score / n_executions
+            min_scores[idx] = min_score
             times[idx] = avg_flight_time / n_executions
         logger.debug(f"Fly time: {time() - fly_time}")
-        best_index = np.argmax(scores)
-        best_score = scores[best_index]
+        best_avg_index = np.argmax(avg_scores)
+        best_avg_score = avg_scores[best_avg_index]
 
+        best_min_index = np.argmax(min_scores)
+        best_min_score = min_scores[best_min_index]
         save_time = time()
 
-        if best_score > global_best_score:
-            logger.info(f"Found new global best! At index {best_index}")
-            global_best_score = best_score
-            global_best_drone = deepcopy(drones[best_index])
+        if best_avg_score > global_best_score:
+            logger.info(f"Found new global best! At index {best_avg_index}")
+            global_best_score = best_avg_score
+            # global_best_drone = deepcopy(drones[best_index])
+            global_best_drone = deepcopy(drones[best_avg_index])
+            global_best_network = deepcopy(drones[best_avg_index].controller)
 
-            best_drone_json = jsonpickle.encode(global_best_drone)
-            with open(f"evolution/best_drone_{execution_time}.json", "w") as jsonfile:
-                json.dump(best_drone_json, jsonfile)
+            # best_drone_json = jsonpickle.encode(global_best_drone)
+            best_network_json = jsonpickle.encode(global_best_network)
+            with open(f"evolution/best_network_{execution_time}.json", "w") as jsonfile:
+                json.dump(best_network_json, jsonfile)
+        if best_min_score > global_best_min_score:
+            logger.info(f"Found new global best minimum! At index {best_min_index}")
+            global_best_min_score = best_min_score
+            # global_best_drone = deepcopy(drones[best_index])
+            global_best_min_drone = deepcopy(drones[best_min_index])
+            global_best_min_network = deepcopy(drones[best_min_index].controller)
+
+            # best_drone_json = jsonpickle.encode(global_best_drone)
+            best_min_network_json = jsonpickle.encode(global_best_min_network)
+            with open(f"evolution/best_min_network_{execution_time}.json", "w") as jsonfile:
+                json.dump(best_min_network_json, jsonfile)
         logger.debug(f"Saving time: {time() - save_time}")
-
+        # global_best_drone = Drone(visualize=False)
+        # best_index = 0
         selection_time = time()
         if isinstance(drones[0].controller, torch.nn.Module):
-            new_population = drones
+            new_population = deepcopy(drones)
         else:
             new_population = selection_and_crossover(drones, p_tournament, p_crossover)
         logger.debug(f"Selection time: {time() - selection_time}")
 
         logger.info(
-            f"Generation {gen}: Best Score: {best_score}, Global Best: {global_best_score}"
+            f"Generation {gen}: Best Avg Score: {best_avg_score}, Global Best: {global_best_score}"
+        )
+        logger.info(
+            f"Generation {gen}: Best Min Score: {best_min_score}, Global Best: {global_best_min_score}"
         )
 
         logger.info(
-            f"\t\tCollected coins by generation best drone: {avg_of_list(drones[best_index].coins_collected)}, best drone crashed: {avg_of_list(global_best_drone.runs_crashed)}, time in air: {avg_of_list(global_best_drone.flight_times)}"
+            f"\t\tCollected coins by generation best drone: {avg_of_list(drones[best_avg_index].coins_collected)}, best drone crashed: {avg_of_list(global_best_drone.runs_crashed)}, time in air: {avg_of_list(global_best_drone.flight_times)}"
         )
         logger.info(
-            f"\t\tFinal dist. generation best drone - coin: {avg_of_list(drones[best_index].distances_to_coin)}"
+            f"\t\tFinal dist. generation best drone - coin: {avg_of_list(drones[best_avg_index].distances_to_coin)}"
         )
         logger.info(
             f"\t\tCollected coins by global best drone:     {avg_of_list(global_best_drone.coins_collected)}, best drone crashed: {avg_of_list(global_best_drone.runs_crashed)}, time in air: {avg_of_list(global_best_drone.flight_times)}"
@@ -189,21 +219,25 @@ if __name__ == "__main__":
         # for a new coin position.
 
         elitism_time = time()
-        drones = new_population
+        drones = deepcopy(new_population)
         del new_population
 
-        with open(f"evolution/best_drone_{execution_time}.json") as jsonfile:
+        with open(f"evolution/best_network_{execution_time}.json") as jsonfile:
             jsonstring = json.load(jsonfile)
-            drone = jsonpickle.decode(jsonstring, classes=Drone)
-            drones[0] = drone
+            drone_nn = jsonpickle.decode(jsonstring, classes=DroneBrain)
+            drones[0].controller = drone_nn
             drones[0].reset()
-            drones[1] = drone
+
+        with open(f"evolution/best_min_network_{execution_time}.json") as jsonfile:
+            jsonstring = json.load(jsonfile)
+            drone_nn = jsonpickle.decode(jsonstring, classes=DroneBrain)
+            drones[1].controller = drone_nn
             drones[1].reset()
 
         # drones[0] = global_best_drone
         # drones[0].reset()
         logger.debug(f"Elitism time: {time() - elitism_time}")
-        logger.info(f"Avg Scores: {avg_of_list(scores)}")
+        logger.info(f"Avg Scores: {avg_of_list(avg_scores)}")
         logger.info(f"Avg Flight Times: {avg_of_list(times)}")
 
     thread_pool.terminate()

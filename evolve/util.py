@@ -5,7 +5,7 @@ from drone.drone import Drone
 
 def selection_and_crossover(drones, p_tournament, p_crossover):
     n = len(drones)
-    new_population = deepcopy(drones)
+    new_population = drones
     for i in range(0, n, 2):
         idx1 = np.random.randint(0, n)
         idx2 = np.random.randint(0, n)
@@ -106,4 +106,6 @@ def compare_weights(weights1, weights2):
 
 
 def avg_of_list(statistics: list):
-    return sum(statistics) / len(statistics)
+    if len(statistics) != 0:
+        return sum(statistics) / len(statistics)
+    return 0
