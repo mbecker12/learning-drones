@@ -1,6 +1,28 @@
 name: Static Analysis
-on: [push]
+on:
+  push:
+    branches:
+      - '*'
 jobs:
+  black:
+    name: Black
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        # Semantic version range syntax or exact version of a Python version
+        python-version: '3.7' 
+    - uses: actions/checkout@v2
+    - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black
+          black --check flight
+          black --check drone
+          black --check visualization
+          black --check test
+
   pylint:
     name: Static Analysis
     runs-on: ubuntu-latest
@@ -22,23 +44,3 @@ jobs:
           pylint --rcfile .pylintrc visualization
           pylint --rcfile .pylintrc test
           pylint --rcfile .pylintrc flight
-             
-  black:
-    name: Black
-    runs-on: ubuntu-latest
-    steps:
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v2
-      with:
-        # Semantic version range syntax or exact version of a Python version
-        python-version: '3.7' 
-    - uses: actions/checkout@v2
-    - run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install black
-          black --check flight
-          black --check drone
-          black --check visualization
-          black --check test
-  
