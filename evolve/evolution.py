@@ -7,6 +7,7 @@ from time import sleep, time
 import traceback
 import os
 import tracemalloc
+
 tracemalloc.start(100)
 
 # possibly bad style, but it works...
@@ -170,7 +171,9 @@ if __name__ == "__main__":
 
             # best_drone_json = jsonpickle.encode(global_best_drone)
             best_min_network_json = jsonpickle.encode(global_best_min_network)
-            with open(f"evolution/best_min_network_{execution_time}.json", "w") as jsonfile:
+            with open(
+                f"evolution/best_min_network_{execution_time}.json", "w"
+            ) as jsonfile:
                 json.dump(best_min_network_json, jsonfile)
         logger.debug(f"Saving time: {time() - save_time}")
         # global_best_drone = Drone(visualize=False)

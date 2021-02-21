@@ -56,7 +56,7 @@ class DataHandler:
         self.n_servers = n_servers
         self.printouts = printouts
         self.parentfolder = parentfolder
-        
+
         # socket info
         self.visualize = visualize
         if self.visualize:
@@ -195,7 +195,8 @@ class DataHandler:
         # create folder to dump results
         try:
             os.makedirs(
-                self.dir_name, exist_ok=True,
+                self.dir_name,
+                exist_ok=True,
             )
         except OSError as err:
             print(

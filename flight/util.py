@@ -11,7 +11,10 @@ def set_coin_successively(run_idx, radius_sq=50, height=10, total_runs=5):
 
 
 def set_coin_delta(
-    run_idx, radius_sq=50, total_runs=5, height_std=1.0,
+    run_idx,
+    radius_sq=50,
+    total_runs=5,
+    height_std=1.0,
 ):
     # TODO: find a good way to randomize new coin positions
     # without messing up elitism
