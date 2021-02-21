@@ -55,26 +55,8 @@ class DataHandler:
 
         self.n_servers = n_servers
         self.printouts = printouts
-        self.dir_name = (
-            parentfolder + "/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S") + "/"
-        )
-
-        # create folder to dump results
-        try:
-            os.makedirs(
-                self.dir_name, exist_ok=True,
-            )
-        except OSError as err:
-            print(
-                "[ERROR] Creation of the directory {} failed".format(self.dir_name),
-                ". Parentfolders need to be manually created!",
-            )
-            print(err)
-            quit()
-        else:
-            if self.printouts:
-                print("[INFO] Created the directory {} ".format(self.dir_name))
-
+        self.parentfolder = parentfolder
+        
         # socket info
         self.visualize = visualize
         if self.visualize:
@@ -206,6 +188,26 @@ class DataHandler:
         #     c.close()
 
         # save data
+        self.dir_name = (
+            self.parentfolder + "/" + datetime.now().strftime("%d_%m_%Y_%H_%M_%S") + "/"
+        )
+
+        # create folder to dump results
+        try:
+            os.makedirs(
+                self.dir_name, exist_ok=True,
+            )
+        except OSError as err:
+            print(
+                "[ERROR] Creation of the directory {} failed".format(self.dir_name),
+                ". Parentfolders need to be manually created!",
+            )
+            print(err)
+            quit()
+        else:
+            if self.printouts:
+                print("[INFO] Created the directory {} ".format(self.dir_name))
+
         self._save_csv()
         self._save_npy()
 
@@ -295,6 +297,7 @@ class DataHandler:
             print("[INFO] .npy saved")
 
     def _save_csv(self):
+        logger.info("Save csv")
         delta = self.time.shape[0] - self.setpoints.shape[0]
         if delta != 0:
             setpoints = np.repeat(
