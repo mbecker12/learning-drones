@@ -206,13 +206,13 @@ class Drone(ControlUnit):
 
     def mutate(self, mutation_rate):
         if isinstance(self.controller, torch.nn.Module):
-            for name, param in self.controller.named_parameters():
-                for par in param:
-                    uniform_random_vector = torch.rand(par.shape)
-                    mutation_mask = uniform_random_vector < mutation_rate
-                    normal_values = torch.normal(0.0, 0.05, size=par.shape)
-                    mutation_deltas = torch.mul(mutation_mask, normal_values)
-                    par += mutation_deltas
+            for layer in self.controller.state_dict():
+                shape = self.controller.state_dict()[layer].shape
+                uniform_random_vector = torch.rand(shape)
+                mutation_mask = uniform_random_vector < mutation_rate
+                normal_values = torch.normal(0.0, 0.05, size=shape)
+                mutation_deltas = torch.mul(mutation_mask, normal_values)
+                self.controller.state_dict()[layer] += mutation_deltas
 
         else:
             for i, layer in enumerate(self.controller.weights):
@@ -284,6 +284,7 @@ class Drone(ControlUnit):
             I_z=I_z,
         )
 
+        # del self.dh
         self.dh = DataHandler(
             parentfolder="./evolution",
             visualize=self.visualize,
